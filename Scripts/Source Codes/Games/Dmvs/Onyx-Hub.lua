@@ -104,7 +104,7 @@ local ok, result = pcall(function()
     if cacheValido and isfile and isfile(uiFileName) then
         return loadstring(readfile(uiFileName))()
     else
-        local codigoUi = game:HttpGet("https://gist.githubusercontent.com/AnyDevPA/fd2967419b373a7535fef0246f31f41b/raw/Onyx_UI.lua")
+        local codigoUi = :HttpGet("https://raw.githubusercontent.com/Deang23cast/Roblox/ef71953b81a6af85ab6ea092ee2fe38360eb7fb6/Scripts/Source%20Codes/Games/Dmvs/Onyx-Hub.lua"))()
         if writefile then 
             writefile(uiFileName, codigoUi) 
             writefile(timeFileName, tostring(os.time()))
