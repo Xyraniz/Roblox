@@ -86,39 +86,14 @@ local function makeDraggable(guiObject, objectToMove)
     end)
 end
 
-local WindUI
-local _version = "1.6.66_V50"
-local uiFileName = "OnyxHubUI_Cache_v" .. _version .. ".txt"
-local timeFileName = "OnyxHubUI_Cache_v" .. _version .. "_Time.txt"
-
-local ok, result = pcall(function()
-    local cacheValido = false
-    
-    if isfile and isfile(timeFileName) and readfile then
-        local savedTime = tonumber(readfile(timeFileName))
-        if savedTime and (os.time() - savedTime) < 86400 then
-            cacheValido = true
-        end
-    end
-
-    if cacheValido and isfile and isfile(uiFileName) then
-        return loadstring(readfile(uiFileName))()
-    else
-        local codigoUi = game:HttpGet("https://gist.githubusercontent.com/AnyDevPA/fd2967419b373a7535fef0246f31f41b/raw/Onyx_UI.lua")
-        if writefile then 
-            writefile(uiFileName, codigoUi) 
-            writefile(timeFileName, tostring(os.time()))
-        end
-        return loadstring(codigoUi)()
-    end
-end)
-
-if ok and result then 
-    WindUI = result 
-else 
-    warn("Error al cargar WindUI. Revisa el enlace de GitHub o tu conexión.") 
-    return 
+-- ========== CARGA DE WINDUI (NUEVO) ==========
+local _version = "1.6.66"
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
+if not WindUI then
+    warn("Error al cargar WindUI. Revisa el enlace de GitHub o tu conexión.")
+    return
 end
+-- =============================================
 
 local Window = WindUI:CreateWindow({
     Title = "ONYX <font color='#6e2e7e'>HUB</font> | DUELS",
