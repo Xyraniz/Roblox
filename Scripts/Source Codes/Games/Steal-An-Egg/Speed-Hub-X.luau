@@ -2,137 +2,49 @@ repeat
 	task.wait()
 until game:IsLoaded()
 
-local tbl
+local function initializeSpeedHub()
+	local function createCloneRefCache()
+		local cloneRefFunction = cloneref
+		local cloneCache = setmetatable({}, { __mode = "v" })
 
-tbl = {
-	IsDetected = false,
-	_unpack = function(arg, arg2, arg3)
-		arg2 = arg2 or 1
-		arg3 = arg3 or #arg
-		if arg2 > arg3 then
-			return
-		end
-		return arg[arg2], tbl._unpack(arg, arg2 + 1, arg3)
-	end,
-	_pcall = function(arg, ...)
-		local tbl2 = { ... }
-
-		local ok, result = pcall(function()
-			return arg(tbl._unpack(tbl2))
-		end)
-
-		if not ok then
-			return false, result
-		end
-		return true, result
-	end,
-}
-
-local function fn()
-	return true
-end
-
-local v, v2 = tbl._pcall(debug.info, fn, "f")
-
-if not v or v2 ~= fn then
-	tbl.IsDetected = true
-	LPH_CRASH()
-end
-
-local v3, v4 = tbl._pcall(debug.info, 2, "f")
-
-if not v3 or v4 ~= pcall then
-	tbl.IsDetected = true
-	LPH_CRASH()
-end
-
-local v5 = (cloneref or function(arg)
-	return arg
-end)(game:GetService("RunService"))
-
-if v5:IsStudio() then
-	tbl.IsDetected = true
-	LPH_CRASH()
-end
-
-if v5:IsServer() then
-	tbl.IsDetected = true
-	LPH_CRASH()
-end
-
-if tbl.IsDetected then
-	return
-end
-
-loadstring([[ 
-  function LPH_NO_VIRTUALIZE(f) return f end;
-  function LPH_JIT_MAX(f) return f end;
-  function LPH_JIT(f) return f end;
-
-  function LPH_ENCNUM(n, ...) return n end;
-  function LPH_ENCSTR(s, ...) return s end;
-  function LPH_ENCFUNC(f, ...) return f end;
-  function LPH_ENCBUF(b, ...) return b end;
-
-  function LPH_ATTRIBUTES(...) end;
-  function LPH_REWRITE(expr, ...) return expr end;
-  function LPH_STACKALLOC(size, zeroOrOne) return {} end;
-  function LPH_PRECHECK(...) end;
-
-  function VM(...) end;
-  function PRESET(...) end;
-  function ENCRYPT(...) end;
-  function OPTIMIZE(...) end;
-  function ERROR_HANDLING(...) end;
-  function TRANSFORM(...) end;
-  NONE, OPAL, ONYX = 0, 1, 2;
-  FAST, SECURE = 0, 1;
-  CONTROL_FLOW, EXTRACT, INLINE, UNROLL, NO_UPVALUES, level = 0, 0, 0, 0, 0, 0;
-]])()
-
-local function fn2()
-	local function fn3()
-		local v6 = cloneref
-		local obj = setmetatable({}, { __mode = "v" })
-
-		return v6 and function(arg)
-			if not arg then
+		return cloneRefFunction and function(instance)
+			if not instance then
 				return nil
 			end
-			local debugId = arg:GetDebugId() or arg
-			local v7 = obj[debugId]
-			if v7 then
-				return v7
+			local debugId = instance:GetDebugId() or instance
+			local cachedRef = cloneCache[debugId]
+			if cachedRef then
+				return cachedRef
 			end
-			local v8 = v6(arg)
-			obj[debugId] = v8
-			return v8
-		end or function(arg)
-			return arg
+			local clonedRef = cloneRefFunction(instance)
+			cloneCache[debugId] = clonedRef
+			return clonedRef
+		end or function(instance)
+			return instance
 		end
 	end
 
-	local v6 = fn3()
+	local cloneRef = createCloneRefCache()
 
-	local obj = setmetatable({}, { __index = function(arg, arg2)
-		return v6(game:GetService(arg2))
+	local services = setmetatable({}, { __index = function(_, serviceName)
+		return cloneRef(game:GetService(serviceName))
 	end })
 
-	local players = obj.Players
-	local replicatedStorage = obj.ReplicatedStorage
-	local userInputService = obj.UserInputService
-	local runService = obj.RunService
-	local lighting = obj.Lighting
-	local httpService = obj.HttpService
-	local teleportService = obj.TeleportService
-	local coreGui = obj.CoreGui
+	local players = services.Players
+	local replicatedStorage = services.ReplicatedStorage
+	local userInputService = services.UserInputService
+	local runService = services.RunService
+	local lighting = services.Lighting
+	local httpService = services.HttpService
+	local teleportService = services.TeleportService
+	local coreGui = services.CoreGui
 	local localPlayer = players.LocalPlayer
 	local playerGui = localPlayer:WaitForChild("PlayerGui")
 	local character = localPlayer.Character
 	local humanoid = character and character:WaitForChild("Humanoid") or nil
 	local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart") or nil
 
-	local tbl2 = {
+	local state = {
 		Enabled = {
 			IsTeleporting = false,
 			["Bypass Anti Teleport"] = true,
@@ -158,13 +70,13 @@ local function fn2()
 	}
 
 	_G.LastAction = _G.LastAction or "Idle"
-	local module = tbl2.Module
-	local connections = tbl2.Connections
-	local cached = tbl2.Cached
-	local stored = tbl2.Stored
-	local enabled = tbl2.Enabled
+	local module = state.Module
+	local connections = state.Connections
+	local cached = state.Cached
+	local stored = state.Stored
+	local enabled = state.Enabled
 
-	local function fn4(arg, arg2)
+	local function notifyDeveloper(arg, arg2)
 		local StarterGui = game:GetService("StarterGui")
 		local name = localPlayer.Name
 
@@ -173,7 +85,7 @@ local function fn2()
 		end
 	end
 
-	local function fn5(arg)
+	local function loadRemoteLibrary(arg)
 		local ok, result = pcall(function()
 			return (load or loadstring)(game:HttpGet(arg))()
 		end)
@@ -183,15 +95,15 @@ local function fn2()
 		end
 	end
 
-	local tbl3 = {
-		SHX = fn5("https://raw.githubusercontent.com/AhmadV99/Main/refs/heads/main/Library/Lib_5.5.0.lua"),
-		Funcs = fn5("https://raw.githubusercontent.com/AhmadV99/Main/refs/heads/main/Library/Example/FuncsV4.lua"),
+	local libraries = {
+		SHX = loadRemoteLibrary("https://raw.githubusercontent.com/AhmadV99/Main/refs/heads/main/Library/Lib_5.5.0.lua"),
+		Funcs = loadRemoteLibrary("https://raw.githubusercontent.com/AhmadV99/Main/refs/heads/main/Library/Example/FuncsV4.lua"),
 	}
 
-	local shx = tbl3.SHX
-	local funcs = tbl3.Funcs
+	local shx = libraries.SHX
+	local funcs = libraries.Funcs
 
-	local fn6 = firesignal or getconnections and function(arg)
+	local fireSignal = firesignal or getconnections and function(arg)
 		for _, v7 in getconnections(arg) do
 			if v7.Function then
 				task.spawn(v7.Function)
@@ -200,8 +112,8 @@ local function fn2()
 	end or function()
 	end
 
-	local function fn7()
-		local function fn8()
+	local function createModules()
+		local function createUtils()
 			return {
 				Connections = function(arg, arg2, arg3)
 					local connection = nil
@@ -218,7 +130,7 @@ local function fn2()
 						local ok, result = pcall(arg2, ...)
 
 						if not ok then
-							fn4(result, "")
+							notifyDeveloper(result, "")
 						end
 					end)
 
@@ -240,7 +152,7 @@ local function fn2()
 							local ok, result = pcall(arg2)
 
 							if not ok then
-								fn4(result, arg)
+								notifyDeveloper(result, arg)
 							end
 						end
 
@@ -274,7 +186,7 @@ local function fn2()
 			}
 		end
 
-		local tbl4 = {
+		local modules = {
 			Webhook = function(arg, arg2)
 				local request_ = request or syn and syn.request or http and http.request or fluxus and fluxus.request or http_request
 				if not request_ then
@@ -288,13 +200,13 @@ local function fn2()
 					Headers = { ["Content-Type"] = "application/json" },
 				})
 			end,
-			Utils = fn8(),
+			Utils = createUtils(),
 		}
 
-		local function fn9()
-			local tbl5
+		local function createDebugInspector()
+			local debugInspector
 
-			tbl5 = {
+			debugInspector = {
 				Logs = {},
 				MaxLogs = 30,
 				CurrentState = "IDLE_STANDBY",
@@ -315,10 +227,10 @@ local function fn2()
 					end
 					arg2 = arg2 or "INFO"
 					local str = string.format("<font color=\"#888888\">[%s]</font> <font color=\"%s\"><b>[%s]</b></font> <font color=\"#EEEEEE\">%s</font>", os.date("%X"), arg2 == "STEAL" and "#00FF7F" or arg2 == "SAKURA" and "#FF69B4" or arg2 == "PLACE" and "#6495ED" or arg2 == "TREADMILL" and "#FFD700" or arg2 == "SELL" and "#FFA500" or arg2 == "FUSE" and "#BA55D3" or arg2 == "NAV" and "#00CED1" or arg2 == "ACTION" and "#00BFFF" or "#AAAAAA", arg2, tostring(arg))
-					table.insert(tbl5.Logs, 1, str)
+					table.insert(debugInspector.Logs, 1, str)
 
-					if #tbl5.Logs > tbl5.MaxLogs then
-						table.remove(tbl5.Logs)
+					if #debugInspector.Logs > debugInspector.MaxLogs then
+						table.remove(debugInspector.Logs)
 					end
 				end,
 			}
@@ -353,32 +265,32 @@ local function fn2()
 							end
 						end
 
-						tbl5.Log(lastAction, str)
-						tbl5.SubAction = lastAction
+						debugInspector.Log(lastAction, str)
+						debugInspector.SubAction = lastAction
 					end
 
 					task.wait(0.05)
 				end
 			end)
 
-			tbl5.SetState = function(arg, arg2, arg3)
+			debugInspector.SetState = function(arg, arg2, arg3)
 				if arg then
-					tbl5.CurrentState = tostring(arg)
+					debugInspector.CurrentState = tostring(arg)
 				end
 
 				if arg2 then
-					tbl5.SubAction = tostring(arg2)
+					debugInspector.SubAction = tostring(arg2)
 					_G.LastAction = tostring(arg2)
 				end
 
 				if arg3 then
-					tbl5.ActiveTarget = tostring(arg3)
+					debugInspector.ActiveTarget = tostring(arg3)
 				end
 			end
 
-			tbl5.CreateGui = function()
-				if tbl5.Gui then
-					return tbl5.Gui
+			debugInspector.CreateGui = function()
+				if debugInspector.Gui then
+					return debugInspector.Gui
 				end
 
 				local ok = pcall(function()
@@ -477,7 +389,7 @@ local function fn2()
 				uiCorner4.Parent = textButton
 
 				textButton.MouseButton1Click:Connect(function()
-					tbl5.Logs = {}
+					debugInspector.Logs = {}
 					textLabel3.Text = "<font color=\"#888888\">Logs cleared.</font>"
 				end)
 
@@ -497,7 +409,7 @@ local function fn2()
 				textButton2.MouseButton1Click:Connect(function()
 					local tbl6 = {}
 
-					for _, log in ipairs(tbl5.Logs) do
+					for _, log in ipairs(debugInspector.Logs) do
 						local v8 = string.gsub(log, "<[^>]+>", "")
 						table.insert(tbl6, v8)
 					end
@@ -506,28 +418,28 @@ local function fn2()
 
 					if setclipboard then
 						setclipboard(str)
-						fn4("Logs copied to clipboard!", "Debug Inspector")
+						notifyDeveloper("Logs copied to clipboard!", "Debug Inspector")
 					end
 				end)
 
 				screenGui.Parent = ok
-				tbl5.Gui = screenGui
+				debugInspector.Gui = screenGui
 
 				task.spawn(function()
 					while true do
 						if screenGui and screenGui.Enabled then
-							tbl5.FrameCount = tbl5.FrameCount + 1
+							debugInspector.FrameCount = debugInspector.FrameCount + 1
 							local now = os.clock()
 
-							if now - tbl5.LastFpsUpdate >= 1 then
-								tbl5.Fps = tbl5.FrameCount / (now - tbl5.LastFpsUpdate)
-								tbl5.FrameCount = 0
-								tbl5.LastFpsUpdate = now
+							if now - debugInspector.LastFpsUpdate >= 1 then
+								debugInspector.Fps = debugInspector.FrameCount / (now - debugInspector.LastFpsUpdate)
+								debugInspector.FrameCount = 0
+								debugInspector.LastFpsUpdate = now
 
 								pcall(function()
 									local serverStatsItem = game:GetService("Stats").Network.ServerStatsItem
 									serverStatsItem = serverStatsItem and serverStatsItem["Data Ping"]
-									tbl5.Ping = serverStatsItem and math.round(serverStatsItem:GetValue()) or 0
+									debugInspector.Ping = serverStatsItem and math.round(serverStatsItem:GetValue()) or 0
 								end)
 							end
 
@@ -535,12 +447,12 @@ local function fn2()
  <b>ACTION:</b> <font color="#FFFFFF">%s</font>
  <b>TARGET:</b> <font color="#FFD700">%s</font>
  <b>STATS:</b> <font color="#00FF7F">Claimed: %d</font> | <font color="#FF6B6B">Timeouts: %d</font> | <font color="#FFA500">Retries: %d</font>
- <b>LOCK OWNER:</b> <font color="#00CED1">%s</font>]], tbl5.CurrentState == "STEALING" and "#00FF7F" or tbl5.CurrentState == "BOSS_FIGHT" and "#FF4500" or tbl5.CurrentState == "BOSS_PORTAL_ENTER" and "#9370DB" or tbl5.CurrentState == "SAKURA_FARM" and "#FF69B4" or tbl5.CurrentState == "PLACE_EGG" and "#6495ED" or tbl5.CurrentState == "TREADMILL" and "#FFD700" or tbl5.CurrentState == "EMERGENCY_SAFEZONE" and "#FF4500" or "#AAAAAA", tbl5.CurrentState, tbl5.Fps, tbl5.Ping, tbl5.SubAction, tbl5.ActiveTarget, tbl5.SuccessClaims or 0, tbl5.Timeouts or 0, tbl5.Retries or 0, tbl4.Movement and tbl4.Movement.GetOwner and tbl4.Movement.GetOwner() or "None")
+ <b>LOCK OWNER:</b> <font color="#00CED1">%s</font>]], debugInspector.CurrentState == "STEALING" and "#00FF7F" or debugInspector.CurrentState == "BOSS_FIGHT" and "#FF4500" or debugInspector.CurrentState == "BOSS_PORTAL_ENTER" and "#9370DB" or debugInspector.CurrentState == "SAKURA_FARM" and "#FF69B4" or debugInspector.CurrentState == "PLACE_EGG" and "#6495ED" or debugInspector.CurrentState == "TREADMILL" and "#FFD700" or debugInspector.CurrentState == "EMERGENCY_SAFEZONE" and "#FF4500" or "#AAAAAA", debugInspector.CurrentState, debugInspector.Fps, debugInspector.Ping, debugInspector.SubAction, debugInspector.ActiveTarget, debugInspector.SuccessClaims or 0, debugInspector.Timeouts or 0, debugInspector.Retries or 0, modules.Movement and modules.Movement.GetOwner and modules.Movement.GetOwner() or "None")
 
-							if #tbl5.Logs == 0 then
+							if #debugInspector.Logs == 0 then
 								textLabel3.Text = "<font color=\"#888888\">No action logs yet...</font>"
 							else
-								textLabel3.Text = table.concat(tbl5.Logs, "\n")
+								textLabel3.Text = table.concat(debugInspector.Logs, "\n")
 							end
 						end
 
@@ -551,25 +463,25 @@ local function fn2()
 				return screenGui
 			end
 
-			tbl5.SetVisible = function(enabled2)
-				local v8 = tbl5.CreateGui()
+			debugInspector.SetVisible = function(enabled2)
+				local v8 = debugInspector.CreateGui()
 
 				if v8 then
 					v8.Enabled = enabled2
 				end
 			end
 
-			return tbl5
+			return debugInspector
 		end
 
-		tbl4.DebugInspector = fn9()
+		modules.DebugInspector = createDebugInspector()
 
-		local function fn10()
+		local function createMiscModule()
 			local currentCamera = workspace.CurrentCamera
-			local contextActionService = obj.ContextActionService
+			local contextActionService = services.ContextActionService
 			local flag = false
 
-			local function fn11(arg)
+			local function disableRagdollStates(arg)
 				if not arg or not arg.Parent then
 					return
 				end
@@ -581,7 +493,7 @@ local function fn2()
 				end)
 			end
 
-			local function fn12(arg)
+			local function restoreRagdollRig(arg)
 				if not arg or not arg.Parent then
 					return
 				end
@@ -595,7 +507,7 @@ local function fn2()
 				end
 			end
 
-			local function fn13(arg)
+			local function bindAntiKnockbackListener(arg)
 				if connections.AntiKnockbackAdded then
 					connections.AntiKnockbackAdded:Disconnect()
 					connections.AntiKnockbackAdded = nil
@@ -622,7 +534,7 @@ local function fn2()
 				end)
 			end
 
-			local function fn14()
+			local function installAntiRagdollHook()
 				if flag or not hookfunction then
 					return
 				end
@@ -630,7 +542,7 @@ local function fn2()
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local remotes = tbl4.Game and tbl4.Game.Remotes
+					local remotes = modules.Game and modules.Game.Remotes
 					local Remotes_
 
 					if remotes then
@@ -654,7 +566,7 @@ local function fn2()
 							if info:find("ContentCatalog") or info:find("UGI") then
 								local v8 = nil
 
-								local function fn15(arg, ...)
+								local function blockRagdollCommand(arg, ...)
 									if enabled["Anti Knockback / Ragdoll"] and typeof(arg) == "string" then
 										if arg:find("\"BeginRagdoll\"") or arg:find("\"BeginImpulse\"") then
 											return
@@ -665,28 +577,28 @@ local function fn2()
 								end
 
 								v8 = hookfunction
-								v8 = v8(function_, fn15)
+								v8 = v8(function_, blockRagdollCommand)
 							end
 						end
 					end
 				end)
 			end
 
-			local function fn15(arg)
+			local function applyAntiKnockbackToCharacter(arg)
 				if not arg then
 					return
 				end
 				local humanoid2 = arg:WaitForChild("Humanoid", 5)
 
 				if humanoid2 then
-					fn11(humanoid2)
+					disableRagdollStates(humanoid2)
 				end
 
-				fn12(arg)
-				fn13(arg)
+				restoreRagdollRig(arg)
+				bindAntiKnockbackListener(arg)
 			end
 
-			local function fn16()
+			local function disconnectAntiKnockbackConnections()
 				for _, v7 in ipairs({ "AntiKnockbackAdded", "AntiKnockbackChar" }) do
 					if connections[v7] then
 						connections[v7]:Disconnect()
@@ -979,29 +891,29 @@ local function fn2()
 					end
 				end,
 				SetAntiKnockback = function(arg)
-					fn16()
+					disconnectAntiKnockbackConnections()
 					if not arg then
 						return
 					end
-					fn14()
+					installAntiRagdollHook()
 
 					if localPlayer.Character then
-						fn15(localPlayer.Character)
+						applyAntiKnockbackToCharacter(localPlayer.Character)
 					end
 
 					connections.AntiKnockbackChar = localPlayer.CharacterAdded:Connect(function(character2)
-						fn15(character2)
+						applyAntiKnockbackToCharacter(character2)
 					end)
 				end,
 			}
 		end
 
-		tbl4.Misc = fn10()
+		modules.Misc = createMiscModule()
 
-		local function fn11()
-			local tbl5
+		local function createGameModule()
+			local gameApi
 
-			tbl5 = {
+			gameApi = {
 				Ready = false,
 				Network = nil,
 				EggCmds = nil,
@@ -1032,59 +944,59 @@ local function fn2()
 							local client = replicatedStorage:FindFirstChild("Client")
 
 							if shared and shared:FindFirstChild("Remotes") then
-								tbl5.Remotes = require(shared.Remotes)
+								gameApi.Remotes = require(shared.Remotes)
 							end
 
 							if shared and shared:FindFirstChild("Save") then
-								tbl5.Save = require(shared.Save)
+								gameApi.Save = require(shared.Save)
 							end
 
 							if data and data:FindFirstChild("Assets") then
-								tbl5.Assets = require(data.Assets)
+								gameApi.Assets = require(data.Assets)
 							end
 
 							if data and data:FindFirstChild("Bases") then
-								tbl5.Bases = require(data.Bases)
+								gameApi.Bases = require(data.Bases)
 							end
 
 							if data and data:FindFirstChild("Rarity") then
-								tbl5.Rarity = require(data.Rarity)
+								gameApi.Rarity = require(data.Rarity)
 							end
 
 							if data and data:FindFirstChild("Treadmills") then
-								tbl5.Treadmills = require(data.Treadmills)
+								gameApi.Treadmills = require(data.Treadmills)
 							end
 
 							if data and data:FindFirstChild("Areas") then
-								tbl5.Areas = require(data.Areas)
+								gameApi.Areas = require(data.Areas)
 							end
 
 							if data and data:FindFirstChild("Trails") then
-								tbl5.Trails = require(data.Trails)
+								gameApi.Trails = require(data.Trails)
 							end
 
 							if shared and shared:FindFirstChild("SettingsCmds") then
-								tbl5.SettingsCmds = require(shared.SettingsCmds)
+								gameApi.SettingsCmds = require(shared.SettingsCmds)
 							end
 
 							if client and client:FindFirstChild("EggState") then
-								tbl5.EggState = require(client.EggState)
+								gameApi.EggState = require(client.EggState)
 							end
 
 							if client and client:FindFirstChild("PlotState") then
-								tbl5.PlotState = require(client.PlotState)
+								gameApi.PlotState = require(client.PlotState)
 							end
 						end)
 
-						tbl5.EggCmds = {
+						gameApi.EggCmds = {
 							GetAreaEggSnapshot = function()
 								local ok, result = pcall(function()
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskFieldEggSnapshot then
-										return tbl5.Remotes.EggWorld.AskFieldEggSnapshot:InvokeServer()
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskFieldEggSnapshot then
+										return gameApi.Remotes.EggWorld.AskFieldEggSnapshot:InvokeServer()
 									end
 
-									if tbl5.EggState and tbl5.EggState.ReadFieldEggs then
-										return { Records = tbl5.EggState.ReadFieldEggs() }
+									if gameApi.EggState and gameApi.EggState.ReadFieldEggs then
+										return { Records = gameApi.EggState.ReadFieldEggs() }
 									end
 								end)
 
@@ -1092,12 +1004,12 @@ local function fn2()
 							end,
 							GetRuntimeSnapshot = function()
 								local ok, result = pcall(function()
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskLiveSnapshot then
-										return tbl5.Remotes.EggWorld.AskLiveSnapshot:InvokeServer()
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskLiveSnapshot then
+										return gameApi.Remotes.EggWorld.AskLiveSnapshot:InvokeServer()
 									end
 
-									if tbl5.EggState and tbl5.EggState.ReadOwnedEggs then
-										return tbl5.EggState.ReadOwnedEggs()
+									if gameApi.EggState and gameApi.EggState.ReadOwnedEggs then
+										return gameApi.EggState.ReadOwnedEggs()
 									end
 								end)
 
@@ -1112,13 +1024,13 @@ local function fn2()
 							end,
 							RequestAreaEggSnapshot = function()
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.SyncFieldEggs then
-										local v7 = tbl5.EggState.SyncFieldEggs()
+									if gameApi.EggState and gameApi.EggState.SyncFieldEggs then
+										local v7 = gameApi.EggState.SyncFieldEggs()
 										if type(v7) == "table" then
 											return v7
 										end
-									elseif tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskFieldEggSnapshot then
-										return tbl5.Remotes.EggWorld.AskFieldEggSnapshot:InvokeServer()
+									elseif gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskFieldEggSnapshot then
+										return gameApi.Remotes.EggWorld.AskFieldEggSnapshot:InvokeServer()
 									end
 								end)
 
@@ -1126,12 +1038,12 @@ local function fn2()
 							end,
 							RequestRuntimeSnapshot = function()
 								local ok, result = pcall(function()
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskLiveSnapshot then
-										return tbl5.Remotes.EggWorld.AskLiveSnapshot:InvokeServer()
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskLiveSnapshot then
+										return gameApi.Remotes.EggWorld.AskLiveSnapshot:InvokeServer()
 									end
 
-									if tbl5.EggState and tbl5.EggState.SyncOwnedEggs then
-										return tbl5.EggState.SyncOwnedEggs()
+									if gameApi.EggState and gameApi.EggState.SyncOwnedEggs then
+										return gameApi.EggState.SyncOwnedEggs()
 									end
 								end)
 
@@ -1139,8 +1051,8 @@ local function fn2()
 							end,
 							RequestCarryAreaEgg = function(arg, arg2)
 								local ok, result = pcall(function()
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskFieldEggCarry then
-										return tbl5.Remotes.EggWorld.AskFieldEggCarry:InvokeServer({ Uid = arg, FirstAreaSlotKey = arg2 })
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskFieldEggCarry then
+										return gameApi.Remotes.EggWorld.AskFieldEggCarry:InvokeServer({ Uid = arg, FirstAreaSlotKey = arg2 })
 									end
 									return require(game:GetService("ReplicatedStorage").Shared.Remotes).EggWorld.AskFieldEggCarry:InvokeServer({ Uid = arg, FirstAreaSlotKey = arg2 })
 								end)
@@ -1149,12 +1061,12 @@ local function fn2()
 							end,
 							RequestDropHeldEgg = function(arg)
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.DropFieldEgg then
-										return tbl5.EggState.DropFieldEgg(arg)
+									if gameApi.EggState and gameApi.EggState.DropFieldEgg then
+										return gameApi.EggState.DropFieldEgg(arg)
 									end
 
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskFieldEggDrop then
-										return tbl5.Remotes.EggWorld.AskFieldEggDrop:InvokeServer({ Reason = arg })
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskFieldEggDrop then
+										return gameApi.Remotes.EggWorld.AskFieldEggDrop:InvokeServer({ Reason = arg })
 									end
 								end)
 
@@ -1170,9 +1082,9 @@ local function fn2()
 									cframe = typeof(arg2) == "CFrame" and arg2 or CFrame.new()
 								end
 
-								if tbl5.EggState and tbl5.EggState.PlantEgg then
+								if gameApi.EggState and gameApi.EggState.PlantEgg then
 									local ok, result = pcall(function()
-										return tbl5.EggState.PlantEgg(arg, cframe)
+										return gameApi.EggState.PlantEgg(arg, cframe)
 									end)
 
 									if ok and result == true then
@@ -1198,12 +1110,12 @@ local function fn2()
 							end,
 							RequestHatchEgg = function(arg)
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.BeginHatch then
-										return tbl5.EggState.BeginHatch(arg)
+									if gameApi.EggState and gameApi.EggState.BeginHatch then
+										return gameApi.EggState.BeginHatch(arg)
 									end
 
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskHatch then
-										return tbl5.Remotes.EggWorld.AskHatch:InvokeServer(arg)
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskHatch then
+										return gameApi.Remotes.EggWorld.AskHatch:InvokeServer(arg)
 									end
 								end)
 
@@ -1211,12 +1123,12 @@ local function fn2()
 							end,
 							RequestCompleteHatchEgg = function(arg)
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.FinishHatch then
-										return tbl5.EggState.FinishHatch(arg)
+									if gameApi.EggState and gameApi.EggState.FinishHatch then
+										return gameApi.EggState.FinishHatch(arg)
 									end
 
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskFinishHatch then
-										return tbl5.Remotes.EggWorld.AskFinishHatch:InvokeServer(arg)
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskFinishHatch then
+										return gameApi.Remotes.EggWorld.AskFinishHatch:InvokeServer(arg)
 									end
 								end)
 
@@ -1224,12 +1136,12 @@ local function fn2()
 							end,
 							RequestEquipTool = function(arg)
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.WearEggTool then
-										return tbl5.EggState.WearEggTool(arg)
+									if gameApi.EggState and gameApi.EggState.WearEggTool then
+										return gameApi.EggState.WearEggTool(arg)
 									end
 
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskWearTool then
-										return tbl5.Remotes.EggWorld.AskWearTool:InvokeServer(arg)
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskWearTool then
+										return gameApi.Remotes.EggWorld.AskWearTool:InvokeServer(arg)
 									end
 								end)
 
@@ -1237,33 +1149,33 @@ local function fn2()
 							end,
 							RequestUnequipTool = function(arg)
 								local ok, result = pcall(function()
-									if tbl5.EggState and tbl5.EggState.DoffEggTool then
-										return tbl5.EggState.DoffEggTool(arg)
+									if gameApi.EggState and gameApi.EggState.DoffEggTool then
+										return gameApi.EggState.DoffEggTool(arg)
 									end
 
-									if tbl5.Remotes and tbl5.Remotes.EggWorld and tbl5.Remotes.EggWorld.AskDoffTool then
-										return tbl5.Remotes.EggWorld.AskDoffTool:InvokeServer(arg)
+									if gameApi.Remotes and gameApi.Remotes.EggWorld and gameApi.Remotes.EggWorld.AskDoffTool then
+										return gameApi.Remotes.EggWorld.AskDoffTool:InvokeServer(arg)
 									end
 								end)
 
 								return ok and result
 							end,
 							IsLocalEggReady = function(arg)
-								if tbl5.EggState and tbl5.EggState.IsReadyToHatch then
-									return tbl5.EggState.IsReadyToHatch(arg)
+								if gameApi.EggState and gameApi.EggState.IsReadyToHatch then
+									return gameApi.EggState.IsReadyToHatch(arg)
 								end
 								return false
 							end,
 						}
 
-						tbl5.PlotCmds = {
+						gameApi.PlotCmds = {
 							GetPlotData = function()
 								local localPlayer2 = localPlayer or game.Players.LocalPlayer
-								local resolvePlot = tbl5.PlotState and tbl5.PlotState.ResolvePlot
+								local resolvePlot = gameApi.PlotState and gameApi.PlotState.ResolvePlot
 								local v7 = nil
 
 								if resolvePlot then
-									v7 = tbl5.PlotState.ResolvePlot(localPlayer2)
+									v7 = gameApi.PlotState.ResolvePlot(localPlayer2)
 								end
 
 								if not v7 then
@@ -1301,9 +1213,9 @@ local function fn2()
 							end,
 						}
 
-						tbl5.GetPlot = tbl5.PlotCmds.GetPlotData
+						gameApi.GetPlot = gameApi.PlotCmds.GetPlotData
 
-						tbl5.Network = setmetatable({}, { __index = function()
+						gameApi.Network = setmetatable({}, { __index = function()
 							return {
 								FireServer = function()
 								end,
@@ -1312,8 +1224,8 @@ local function fn2()
 							}
 						end })
 
-						tbl5.Ready = tbl5.Save ~= nil and tbl5.Assets ~= nil and tbl5.Remotes ~= nil
-						return tbl5.Ready
+						gameApi.Ready = gameApi.Save ~= nil and gameApi.Assets ~= nil and gameApi.Remotes ~= nil
+						return gameApi.Ready
 					end
 
 					local library = replicatedStorage:FindFirstChild("Library")
@@ -1321,29 +1233,29 @@ local function fn2()
 
 					if library then
 						pcall(function()
-							tbl5.Network = require(library.Client.Network)
-							tbl5.EggCmds = require(library.Client.EggCmds)
-							tbl5.AssetCmds = require(library.Client.AssetCmds)
-							tbl5.PlotCmds = require(library.Client.PlotCmds)
-							tbl5.Save = require(library.Client.Save)
+							gameApi.Network = require(library.Client.Network)
+							gameApi.EggCmds = require(library.Client.EggCmds)
+							gameApi.AssetCmds = require(library.Client.AssetCmds)
+							gameApi.PlotCmds = require(library.Client.PlotCmds)
+							gameApi.Save = require(library.Client.Save)
 						end)
 					end
 
 					if directory then
 						pcall(function()
-							tbl5.Assets = require(directory.Assets)
-							tbl5.Rarity = require(directory.Rarity)
-							tbl5.Treadmills = require(directory.Treadmills)
-							tbl5.Bases = require(directory.Bases)
-							tbl5.Areas = require(directory.Areas)
+							gameApi.Assets = require(directory.Assets)
+							gameApi.Rarity = require(directory.Rarity)
+							gameApi.Treadmills = require(directory.Treadmills)
+							gameApi.Bases = require(directory.Bases)
+							gameApi.Areas = require(directory.Areas)
 						end)
 					end
 
-					tbl5.Ready = tbl5.Save ~= nil and tbl5.Assets ~= nil
-					return tbl5.Ready
+					gameApi.Ready = gameApi.Save ~= nil and gameApi.Assets ~= nil
+					return gameApi.Ready
 				end,
 				GetSave = function()
-					if not tbl5.Save then
+					if not gameApi.Save then
 						local ok, save = pcall(function()
 							return require(game:GetService("ReplicatedStorage").Shared.Save)
 						end)
@@ -1355,13 +1267,13 @@ local function fn2()
 						end
 
 						if ok and save then
-							tbl5.Save = save
+							gameApi.Save = save
 						end
 					end
 
-					if tbl5.Save and tbl5.Save.Get then
+					if gameApi.Save and gameApi.Save.Get then
 						local ok, result = pcall(function()
-							return tbl5.Save.Get()
+							return gameApi.Save.Get()
 						end)
 
 						if ok and type(result) == "table" then
@@ -1369,9 +1281,9 @@ local function fn2()
 						end
 					end
 
-					if tbl5.Save and tbl5.Save.Peek then
+					if gameApi.Save and gameApi.Save.Peek then
 						local ok, result = pcall(function()
-							return tbl5.Save.Peek()
+							return gameApi.Save.Peek()
 						end)
 
 						if ok and type(result) == "table" then
@@ -1382,27 +1294,27 @@ local function fn2()
 					return nil
 				end,
 				GetSaveWait = function()
-					if not tbl5.Save then
+					if not gameApi.Save then
 						return nil
 					end
-					local v7 = tbl5.GetSave()
+					local v7 = gameApi.GetSave()
 					local n = 0
 
 					while not v7 and n < 30 do
 						task.wait(1)
-						v7 = tbl5.GetSave()
+						v7 = gameApi.GetSave()
 						n += 1
 					end
 
 					return v7
 				end,
 				GetPlot = function()
-					if not tbl5.PlotCmds then
+					if not gameApi.PlotCmds then
 						return nil
 					end
 
 					local ok, result = pcall(function()
-						return tbl5.PlotCmds.GetPlotData()
+						return gameApi.PlotCmds.GetPlotData()
 					end)
 
 					if ok and type(result) == "table" then
@@ -1414,12 +1326,12 @@ local function fn2()
 					return localPlayer.UserId
 				end,
 				GetAreas = function()
-					if not tbl5.Areas or not tbl5.Areas.Directory then
+					if not gameApi.Areas or not gameApi.Areas.Directory then
 						return {}
 					end
 					local tbl6 = {}
 
-					for k in pairs(tbl5.Areas.Directory) do
+					for k in pairs(gameApi.Areas.Directory) do
 						table.insert(tbl6, k)
 					end
 
@@ -1428,82 +1340,82 @@ local function fn2()
 				end,
 			}
 
-			return tbl5
+			return gameApi
 		end
 
-		tbl4.Game = fn11()
+		modules.Game = createGameModule()
 
-		local function fn12()
-			local tbl5
+		local function createMovementModule()
+			local movementManager
 
-			tbl5 = {
+			movementManager = {
 				CurrentOwner = nil,
 				OwnerPriority = 0,
 				ClaimedAt = 0,
 				CanClaim = function(arg, arg2)
 					local now = os.clock()
-					if tbl5.CurrentOwner == nil or tbl5.CurrentOwner == arg then
+					if movementManager.CurrentOwner == nil or movementManager.CurrentOwner == arg then
 						return true
 					end
 
-					if now - tbl5.ClaimedAt > 20 then
+					if now - movementManager.ClaimedAt > 20 then
 						return true
 					end
-					return (arg2 or 0) > tbl5.OwnerPriority
+					return (arg2 or 0) > movementManager.OwnerPriority
 				end,
 				Claim = function(currentOwner, ownerPriority)
 					local now = os.clock()
 
-					if tbl5.CurrentOwner == nil or tbl5.CurrentOwner == currentOwner then
-						tbl5.CurrentOwner = currentOwner
-						local v7 = tbl5
+					if movementManager.CurrentOwner == nil or movementManager.CurrentOwner == currentOwner then
+						movementManager.CurrentOwner = currentOwner
+						local v7 = movementManager
 						ownerPriority = ownerPriority or 0
 						v7.OwnerPriority = ownerPriority
-						tbl5.ClaimedAt = now
+						movementManager.ClaimedAt = now
 						return true
 					end
 
-					if now - tbl5.ClaimedAt > 20 then
-						tbl5.CurrentOwner = currentOwner
-						local v7 = tbl5
+					if now - movementManager.ClaimedAt > 20 then
+						movementManager.CurrentOwner = currentOwner
+						local v7 = movementManager
 						ownerPriority = ownerPriority or 0
 						v7.OwnerPriority = ownerPriority
-						tbl5.ClaimedAt = now
+						movementManager.ClaimedAt = now
 						return true
 					end
 
-					if tbl5.OwnerPriority < (ownerPriority or 0) then
-						tbl5.CurrentOwner = currentOwner
-						tbl5.OwnerPriority = ownerPriority or 0
-						tbl5.ClaimedAt = now
+					if movementManager.OwnerPriority < (ownerPriority or 0) then
+						movementManager.CurrentOwner = currentOwner
+						movementManager.OwnerPriority = ownerPriority or 0
+						movementManager.ClaimedAt = now
 						return true
 					end
 
 					return false
 				end,
 				Release = function(arg)
-					if tbl5.CurrentOwner == arg then
-						tbl5.CurrentOwner = nil
-						tbl5.OwnerPriority = 0
-						tbl5.ClaimedAt = 0
+					if movementManager.CurrentOwner == arg then
+						movementManager.CurrentOwner = nil
+						movementManager.OwnerPriority = 0
+						movementManager.ClaimedAt = 0
 					end
 				end,
 				GetOwner = function()
-					return tbl5.CurrentOwner
+					return movementManager.CurrentOwner
 				end,
 				Stop = function()
 				end,
 			}
 
-			return tbl5
+			return movementManager
 		end
 
-		tbl4.Movement = fn12()
+		modules.Movement = createMovementModule()
 
-		local function fn13()
-			local tbl5
+		local function createFarmStateModule()
+			local farmStateManager
 
-			tbl5 = {
+			farmStateManager = {
 				Eggs = {},
 				EggsAt = 0,
 				TargetUid = nil,
@@ -1519,14 +1431,14 @@ local function fn2()
 				LastSnapshotAt = 0,
 				IsPlacing = false,
 				GetEggCapacityStatus = function()
-					local save = tbl4.Game and tbl4.Game.Save
-					local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+					local save = modules.Game and modules.Game.Save
+					local eggCmds = modules.Game and modules.Game.EggCmds
 
-					if tbl4.Game then
+					if modules.Game then
 					end
 
 					local baseUpgradeLevel = (save and save.Get and save.Get() or save and save.Peek and save.Peek() or {}).BaseUpgradeLevel or 1
-					local maxPlaced = tbl4.PlaceEgg and tbl4.PlaceEgg.MaxPlaced or 30
+					local maxPlaced = modules.PlaceEgg and modules.PlaceEgg.MaxPlaced or 30
 					local getRuntimeSnapshot = eggCmds and eggCmds.GetRuntimeSnapshot and eggCmds.GetRuntimeSnapshot() or {}
 					local tbl6 = {}
 
@@ -1566,17 +1478,17 @@ local function fn2()
 					local flag = not arg
 
 					if flag then
-						local eggsAt = tbl5.EggsAt
+						local eggsAt = farmStateManager.EggsAt
 						flag = os.clock() - eggsAt < 0.5
 					end
 
 					if flag then
 						return
 					end
-					tbl5.EggsAt = os.clock()
+					farmStateManager.EggsAt = os.clock()
 
 					local ok, result = pcall(function()
-						local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+						local eggCmds = modules.Game and modules.Game.EggCmds
 						return eggCmds and eggCmds.RequestAreaEggSnapshot and eggCmds.RequestAreaEggSnapshot()
 					end)
 
@@ -1590,12 +1502,12 @@ local function fn2()
 							records2 = records
 						end
 
-						tbl5.Eggs = records2 or {}
+						farmStateManager.Eggs = records2 or {}
 					end
 				end,
 				GetCarryState = function()
-					if tbl5.Carrying then
-						return true, tbl5.CarriedUid, tbl5.CarriedAssetCategory
+					if farmStateManager.Carrying then
+						return true, farmStateManager.CarriedUid, farmStateManager.CarriedAssetCategory
 					end
 					local character2 = localPlayer.Character
 
@@ -1610,63 +1522,63 @@ local function fn2()
 
 					local dropHeldEgg = playerGui:FindFirstChild("DropHeldEgg")
 					if dropHeldEgg and dropHeldEgg.Enabled then
-						return true, tbl5.CarriedUid, tbl5.CarriedAssetCategory
+						return true, farmStateManager.CarriedUid, farmStateManager.CarriedAssetCategory
 					end
 					return false, nil, nil
 				end,
 				SyncCarry = function()
-					local v7, v8, v9 = tbl5.GetCarryState()
+					local v7, v8, v9 = farmStateManager.GetCarryState()
 
-					if tbl5.OptimisticCarry then
+					if farmStateManager.OptimisticCarry then
 						if v7 then
-							tbl5.OptimisticCarry = false
-							tbl5.Carrying = true
-							tbl5.CarriedUid = v8
-							tbl5.CarriedAssetCategory = v9
+							farmStateManager.OptimisticCarry = false
+							farmStateManager.Carrying = true
+							farmStateManager.CarriedUid = v8
+							farmStateManager.CarriedAssetCategory = v9
 							return
 						end
 
-						local optimisticAt = tbl5.OptimisticAt
+						local optimisticAt = farmStateManager.OptimisticAt
 
 						if optimisticAt then
-							local optimisticAt2 = tbl5.OptimisticAt
+							local optimisticAt2 = farmStateManager.OptimisticAt
 							optimisticAt = os.clock() - optimisticAt2 > 4
 						end
 
 						if optimisticAt then
-							tbl5.OptimisticCarry = false
-							tbl5.Carrying = false
-							tbl5.CarriedUid = nil
-							tbl5.CarriedAssetCategory = nil
+							farmStateManager.OptimisticCarry = false
+							farmStateManager.Carrying = false
+							farmStateManager.CarriedUid = nil
+							farmStateManager.CarriedAssetCategory = nil
 						end
 
 						return
 					end
 
-					tbl5.Carrying = v7
+					farmStateManager.Carrying = v7
 
 					if v7 then
-						tbl5.CarriedUid = v8
-						tbl5.CarriedAssetCategory = v9
+						farmStateManager.CarriedUid = v8
+						farmStateManager.CarriedAssetCategory = v9
 					else
-						tbl5.CarriedUid = nil
-						tbl5.CarriedAssetCategory = nil
+						farmStateManager.CarriedUid = nil
+						farmStateManager.CarriedAssetCategory = nil
 					end
 				end,
 			}
 
-			return tbl5
+			return farmStateManager
 		end
 
-		tbl4.FarmState = fn13()
+		modules.FarmState = createFarmStateModule()
 
-		local function fn14()
-			local tbl5 = {}
-			local farmState = tbl4.FarmState
-			local movement = tbl4.Movement
+		local function createStealModule()
+			local stealManager = {}
+			local farmState = modules.FarmState
+			local movement = modules.Movement
 			local tbl6 = { BlockedEggs = {}, Night = false }
 
-			if tbl4.Game then
+			if modules.Game then
 			end
 
 			local Remotes_ = nil
@@ -1677,11 +1589,11 @@ local function fn2()
 
 			local tbl7 = {}
 
-			local function fn15()
+			local function getAssetDirectory()
 				if next(tbl7) then
 					return tbl7
 				end
-				local assets = tbl4.Game and tbl4.Game.Assets
+				local assets = modules.Game and modules.Game.Assets
 
 				if not assets then
 					pcall(function()
@@ -1875,13 +1787,13 @@ local function fn2()
 				unicorn = 10,
 			}
 
-			tbl5.AreaFilters = {}
-			tbl5.SpecificEggFilters = {}
-			tbl5.MinRarity = 7
-			tbl5.SafeZone = Vector3.new(515, 74.4, -362.8)
-			tbl5.Priority = "Best Rarity"
+			stealManager.AreaFilters = {}
+			stealManager.SpecificEggFilters = {}
+			stealManager.MinRarity = 7
+			stealManager.SafeZone = Vector3.new(515, 74.4, -362.8)
+			stealManager.Priority = "Best Rarity"
 
-			tbl5.ParseRarity = function(arg)
+			stealManager.ParseRarity = function(arg)
 				if not arg then
 					return 7
 				end
@@ -1935,7 +1847,7 @@ local function fn2()
 				return 7
 			end
 
-			tbl5.GetMinRarity = function()
+			stealManager.GetMinRarity = function()
 				local minRarity = stored.Controllers and stored.Controllers["Min Rarity"]
 
 				if minRarity and minRarity.Get then
@@ -1944,20 +1856,20 @@ local function fn2()
 					end)
 
 					if ok and result ~= nil then
-						local v7 = tbl5.ParseRarity(result)
-						tbl5.MinRarity = v7
+						local v7 = stealManager.ParseRarity(result)
+						stealManager.MinRarity = v7
 						return v7
 					end
 				end
 
-				return tbl5.MinRarity or 1
+				return stealManager.MinRarity or 1
 			end
 
-			tbl5.SyncFromControllers = function()
+			stealManager.SyncFromControllers = function()
 				if stored.Controllers then
 					if stored.Controllers["Min Rarity"] and stored.Controllers["Min Rarity"].Get then
 						pcall(function()
-							tbl5.MinRarity = tbl5.ParseRarity(stored.Controllers["Min Rarity"]:Get())
+							stealManager.MinRarity = stealManager.ParseRarity(stored.Controllers["Min Rarity"]:Get())
 						end)
 					end
 
@@ -1966,7 +1878,7 @@ local function fn2()
 							local v7 = stored.Controllers["Steal Priority"]:Get()
 
 							if v7 then
-								tbl5.Priority = v7
+								stealManager.Priority = v7
 							end
 						end)
 					end
@@ -1976,7 +1888,7 @@ local function fn2()
 							local v7 = stored.Controllers["Target Areas"]:Get()
 
 							if v7 then
-								tbl5.AreaFilters = v7
+								stealManager.AreaFilters = v7
 							end
 						end)
 					end
@@ -1986,10 +1898,10 @@ local function fn2()
 							local v7 = stored.Controllers["Target Specific Eggs"]:Get()
 
 							if v7 then
-								tbl5.SpecificEggFilters = v7
+								stealManager.SpecificEggFilters = v7
 
-								if tbl5.RebuildSpecificEggLookup then
-									tbl5.RebuildSpecificEggLookup()
+								if stealManager.RebuildSpecificEggLookup then
+									stealManager.RebuildSpecificEggLookup()
 								end
 							end
 						end)
@@ -1997,21 +1909,21 @@ local function fn2()
 				end
 			end
 
-			tbl5.IsAreaSelected = function(arg)
-				if not tbl5.AreaFilters then
+			stealManager.IsAreaSelected = function(arg)
+				if not stealManager.AreaFilters then
 					return true
 				end
 
-				if tbl5.AreaFilters[arg] == true then
+				if stealManager.AreaFilters[arg] == true then
 					return true
 				end
 
-				if tbl5.AreaFilters.All or tbl5.AreaFilters.Semua then
+				if stealManager.AreaFilters.All or stealManager.AreaFilters.Semua then
 					return true
 				end
 				local n = 0
 
-				for k, areaFilter in pairs(tbl5.AreaFilters) do
+				for k, areaFilter in pairs(stealManager.AreaFilters) do
 					n += 1
 					if areaFilter == true and k == arg then
 						return true
@@ -2025,11 +1937,11 @@ local function fn2()
 				return n == 0
 			end
 
-			tbl5.GetEggDisplayName = function(arg)
+			stealManager.GetEggDisplayName = function(arg)
 				if not arg then
 					return "Unknown"
 				end
-				local v7 = fn15()
+				local v7 = getAssetDirectory()
 				if v7 and v7[arg] then
 					local v8 = v7[arg]
 					return v8.DisplayName or v8.Name or arg
@@ -2037,7 +1949,7 @@ local function fn2()
 				return tostring(arg)
 			end
 
-			tbl5.GetEggRarityNumber = function(arg)
+			stealManager.GetEggRarityNumber = function(arg)
 				if not arg then
 					return 1
 				end
@@ -2058,7 +1970,7 @@ local function fn2()
 				if not assetCategory then
 					return 1
 				end
-				local v7 = fn15()
+				local v7 = getAssetDirectory()
 				v7 = v7 and v7[assetCategory]
 
 				if v7 then
@@ -2119,11 +2031,11 @@ local function fn2()
 				return 1
 			end
 
-			tbl5.GetEggRarityName = function(arg)
+			stealManager.GetEggRarityName = function(arg)
 				if not arg then
 					return "Common"
 				end
-				local v7 = fn15()
+				local v7 = getAssetDirectory()
 
 				if v7 and v7[arg] then
 					local v8 = v7[arg]
@@ -2142,26 +2054,26 @@ local function fn2()
 					end
 				end
 
-				return tbl9[tbl5.GetEggRarityNumber(arg)] or "Common"
+				return tbl9[stealManager.GetEggRarityNumber(arg)] or "Common"
 			end
 
-			tbl5.GetEggFormattedName = function(arg)
+			stealManager.GetEggFormattedName = function(arg)
 				if not arg then
 					return "Unknown"
 				end
 				local assetCategory = arg.AssetCategory or arg.Category or arg.Name or "Unknown"
-				local v7 = tbl5.GetEggDisplayName(assetCategory)
-				local v8 = tbl5.GetEggRarityName(assetCategory)
+				local v7 = stealManager.GetEggDisplayName(assetCategory)
+				local v8 = stealManager.GetEggRarityName(assetCategory)
 				return string.format("%s [%s]", v7, v8)
 			end
 
-			tbl5.SpecificEggLookup = {}
-			tbl5.HasSpecificEggFilters = false
+			stealManager.SpecificEggLookup = {}
+			stealManager.HasSpecificEggFilters = false
 
-			tbl5.RebuildSpecificEggLookup = function()
+			stealManager.RebuildSpecificEggLookup = function()
 				local specificEggLookup = {}
 				local v7 = pairs
-				local specificEggFilters = tbl5.SpecificEggFilters or {}
+				local specificEggFilters = stealManager.SpecificEggFilters or {}
 				local n = 0
 				local flag = false
 
@@ -2194,16 +2106,16 @@ local function fn2()
 				end
 
 				if flag or n == 0 then
-					tbl5.HasSpecificEggFilters = false
-					tbl5.SpecificEggLookup = {}
+					stealManager.HasSpecificEggFilters = false
+					stealManager.SpecificEggLookup = {}
 				else
-					tbl5.HasSpecificEggFilters = true
-					tbl5.SpecificEggLookup = specificEggLookup
+					stealManager.HasSpecificEggFilters = true
+					stealManager.SpecificEggLookup = specificEggLookup
 				end
 			end
 
-			tbl5.IsSpecificEggSelected = function(arg)
-				if not tbl5.HasSpecificEggFilters then
+			stealManager.IsSpecificEggSelected = function(arg)
+				if not stealManager.HasSpecificEggFilters then
 					return true
 				end
 
@@ -2214,7 +2126,7 @@ local function fn2()
 				if not assetCategory then
 					return false
 				end
-				local specificEggLookup = tbl5.SpecificEggLookup
+				local specificEggLookup = stealManager.SpecificEggLookup
 				if not specificEggLookup then
 					return true
 				end
@@ -2222,7 +2134,7 @@ local function fn2()
 				if specificEggLookup[v7] or specificEggLookup[v7:gsub("%s+", "")] then
 					return true
 				end
-				local v8 = tbl5.GetEggDisplayName(assetCategory)
+				local v8 = stealManager.GetEggDisplayName(assetCategory)
 
 				if v8 then
 					local v9 = string.lower(v8)
@@ -2234,7 +2146,7 @@ local function fn2()
 				return false
 			end
 
-			tbl5.GetEggWeight = function(arg)
+			stealManager.GetEggWeight = function(arg)
 				if not arg then
 					return 0
 				end
@@ -2253,7 +2165,7 @@ local function fn2()
 				return n2 * n ^ 3
 			end
 
-			tbl5.GetEggIncome = function(arg)
+			stealManager.GetEggIncome = function(arg)
 				if not arg then
 					return 0
 				end
@@ -2279,8 +2191,8 @@ local function fn2()
 				return n * n3
 			end
 
-			tbl5.CalculateEggScore = function(arg, arg2)
-				local v7 = tbl5.GetEggRarityNumber(arg)
+			stealManager.CalculateEggScore = function(arg, arg2)
+				local v7 = stealManager.GetEggRarityNumber(arg)
 				local n = tonumber(arg.AssetScale) or tonumber(arg.Scale) or 1
 				local n2 = arg.State == "Dropped" and 50000000 or 0
 				local flag
@@ -2296,24 +2208,24 @@ local function fn2()
 					end
 				end
 
-				if tbl5.Priority == "Mutation" then
+				if stealManager.Priority == "Mutation" then
 					return n2 + (flag and 10000000 or 0) + v7 * 100000 + n * 1000 - arg2 * 0.1
 				end
 
-				if tbl5.Priority == "Best Weight" then
-					local n3 = n2 + tbl5.GetEggWeight(arg) * 1000 + v7 * 10000
+				if stealManager.Priority == "Best Weight" then
+					local n3 = n2 + stealManager.GetEggWeight(arg) * 1000 + v7 * 10000
 					flag = flag and 5000 or 0
 					return n3 + flag - arg2 * 0.1
 				end
 
-				if tbl5.Priority == "Highest Money/Sec" then
-					local n3 = n2 + tbl5.GetEggIncome(arg) * 1000 + v7 * 10000
+				if stealManager.Priority == "Highest Money/Sec" then
+					local n3 = n2 + stealManager.GetEggIncome(arg) * 1000 + v7 * 10000
 					flag = flag and 5000
 					return n3 + (flag or 0) - arg2 * 0.1
 				end
 
-				if tbl5.Priority == "Lowest Money/Sec" then
-					local v8 = tbl5.GetEggIncome(arg)
+				if stealManager.Priority == "Lowest Money/Sec" then
+					local v8 = stealManager.GetEggIncome(arg)
 					local n3 = n2 + v7 * 10000
 					flag = flag and 5000 or 0
 					return n3 + flag - v8 * 1000 - arg2 * 0.1
@@ -2325,7 +2237,7 @@ local function fn2()
 			local raycastParams = RaycastParams.new()
 			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
-			tbl5.GetGroundPosition = function(arg)
+			stealManager.GetGroundPosition = function(arg)
 				if not arg then
 					return arg
 				end
@@ -2342,7 +2254,7 @@ local function fn2()
 				return arg
 			end
 
-			tbl5.GetSafeZone = function()
+			stealManager.GetSafeZone = function()
 				local world = workspace:FindFirstChild("World")
 				local build = world and world:FindFirstChild("Build")
 				build = build and build:FindFirstChild("MainMap")
@@ -2388,9 +2300,9 @@ local function fn2()
 				return Vector3.new(515, 74.4, -362.8)
 			end
 
-			tbl5.GetSpawnTarget = tbl5.GetSafeZone
+			stealManager.GetSpawnTarget = stealManager.GetSafeZone
 
-			tbl5.IsInSafeZone = function()
+			stealManager.IsInSafeZone = function()
 				local character2 = localPlayer.Character
 				character2 = character2 and character2:FindFirstChild("HumanoidRootPart")
 				local separationLine = workspace.World.Areas:FindFirstChild("SeparationLine")
@@ -2413,7 +2325,7 @@ local function fn2()
 				ToolGameplayGuard = require(replicatedStorage.Client.ToolGameplayGuard)
 			end)
 
-			tbl5.IsInSafeZoneArea = function()
+			stealManager.IsInSafeZoneArea = function()
 				local ok, result = pcall(function()
 					if ToolGameplayGuard and ToolGameplayGuard.IsInsideSafeZone then
 						return ToolGameplayGuard.IsInsideSafeZone(localPlayer)
@@ -2433,34 +2345,34 @@ local function fn2()
 				if ok2 and result2 ~= nil then
 					return result2 == true
 				end
-				return tbl5.IsInSafeZone()
+				return stealManager.IsInSafeZone()
 			end
 
-			tbl5.IsGroundedInSafeZone = function(arg)
+			stealManager.IsGroundedInSafeZone = function(arg)
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 				if not humanoidRootPart2 then
 					return false
 				end
-				local v7 = arg or tbl5.GetSafeZone()
+				local v7 = arg or stealManager.GetSafeZone()
 				local magnitude = (Vector3.new(humanoidRootPart2.Position.X, 0, humanoidRootPart2.Position.Z) - Vector3.new(v7.X, 0, v7.Z)).Magnitude
 				local n = math.abs(humanoidRootPart2.Position.Y - v7.Y)
-				return magnitude <= 30 and n <= 8 or tbl5.IsInSafeZoneArea() and magnitude <= 40 and n <= 8
+				return magnitude <= 30 and n <= 8 or stealManager.IsInSafeZoneArea() and magnitude <= 40 and n <= 8
 			end
 
-			tbl5.BaseFor = function()
-				return tbl5.GetSafeZone()
+			stealManager.BaseFor = function()
+				return stealManager.GetSafeZone()
 			end
 
-			tbl5.Speed = 350
-			tbl5.FlightY = 78
-			tbl5.Timeout = 2.5
-			tbl5.IsStealing = false
-			tbl5.GotEgg = false
-			tbl5.ClaimHookDone = false
-			tbl5.CarryHookDone = false
-			tbl5.FailCounts = {}
+			stealManager.Speed = 350
+			stealManager.FlightY = 78
+			stealManager.Timeout = 2.5
+			stealManager.IsStealing = false
+			stealManager.GotEgg = false
+			stealManager.ClaimHookDone = false
+			stealManager.CarryHookDone = false
+			stealManager.FailCounts = {}
 
-			tbl5.EnsureAtSafeZone = function(arg)
+			stealManager.EnsureAtSafeZone = function(arg)
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 				local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 				if not humanoidRootPart2 then
@@ -2468,16 +2380,16 @@ local function fn2()
 				end
 
 				if humanoid2 then
-					tbl5.ResetHumanoidState(humanoid2)
+					stealManager.ResetHumanoidState(humanoid2)
 				end
 
-				local v7 = tbl5.GetSafeZone()
+				local v7 = stealManager.GetSafeZone()
 				local magnitude = (humanoidRootPart2.Position - v7).Magnitude
 				local flag = not arg
 				local flag2
 
 				if flag then
-					flag2 = magnitude <= 65 or tbl5.IsInSafeZone()
+					flag2 = magnitude <= 65 or stealManager.IsInSafeZone()
 				else
 					flag2 = flag
 				end
@@ -2486,8 +2398,8 @@ local function fn2()
 					return true
 				end
 				_G.LastAction = string.format("Steal: Karakter di luar SafeZone (%.0f studs). Meluncur kembali via Tween...", magnitude)
-				tbl5.TweenTo(Vector3.new(v7.X, tbl5.FlightY or 78, v7.Z), math.max(tbl5.Speed or 650, 750), { Owner = "Steal" })
-				tbl5.TweenTo(v7, math.max(tbl5.Speed or 650, 400), { Owner = "Steal" })
+				stealManager.TweenTo(Vector3.new(v7.X, stealManager.FlightY or 78, v7.Z), math.max(stealManager.Speed or 650, 750), { Owner = "Steal" })
+				stealManager.TweenTo(v7, math.max(stealManager.Speed or 650, 400), { Owner = "Steal" })
 				local humanoidRootPart3 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
 				if humanoidRootPart3 then
@@ -2499,8 +2411,8 @@ local function fn2()
 				return true
 			end
 
-			tbl5.EnsureClaimHook = function()
-				if tbl5.ClaimHookDone then
+			stealManager.EnsureClaimHook = function()
+				if stealManager.ClaimHookDone then
 					return
 				end
 
@@ -2511,14 +2423,14 @@ local function fn2()
 					if EggState and EggState.FieldClaimed then
 						EggState.FieldClaimed:Connect(function()
 							farmState.ClaimedAt = os.clock()
-							tbl5.GotEgg = false
+							stealManager.GotEgg = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
 							farmState.CarriedAssetCategory = nil
 							farmState.OptimisticCarry = false
 						end)
 
-						tbl5.ClaimHookDone = true
+						stealManager.ClaimHookDone = true
 					end
 
 					local networking = ReplicatedStorage:FindFirstChild("Packages") and ReplicatedStorage.Packages:FindFirstChild("Networking")
@@ -2537,7 +2449,7 @@ local function fn2()
 							if v7 then
 								child.OnClientEvent:Connect(function()
 									farmState.ClaimedAt = os.clock()
-									tbl5.GotEgg = false
+									stealManager.GotEgg = false
 									farmState.Carrying = false
 								end)
 							end
@@ -2546,17 +2458,17 @@ local function fn2()
 				end)
 			end
 
-			tbl5.EnsureCarryHook = function()
-				if tbl5.CarryHookDone then
+			stealManager.EnsureCarryHook = function()
+				if stealManager.CarryHookDone then
 					return
 				end
 
-				local function fn16(...)
+				local function handleCarryStateUpdate(...)
 					local v7 = ({ ... })[1]
 
 					if type(v7) == "table" then
 						local gotEgg = v7.IsCarrying == true
-						tbl5.GotEgg = gotEgg
+						stealManager.GotEgg = gotEgg
 						farmState.Carrying = gotEgg
 
 						if gotEgg then
@@ -2578,21 +2490,21 @@ local function fn2()
 					networking = networking and networking:FindFirstChild("RE/EggWorld/FieldEggCarry")
 
 					if networking and networking:IsA("RemoteEvent") then
-						networking.OnClientEvent:Connect(fn16)
+						networking.OnClientEvent:Connect(handleCarryStateUpdate)
 					end
 				end)
 
 				pcall(function()
-					local remotes = tbl4.Game and tbl4.Game.Remotes or replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
+					local remotes = modules.Game and modules.Game.Remotes or replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
 
 					if remotes and remotes.EggWorld and remotes.EggWorld.FieldEggCarry then
-						remotes.EggWorld.FieldEggCarry.OnClientEvent:Connect(fn16)
+						remotes.EggWorld.FieldEggCarry.OnClientEvent:Connect(handleCarryStateUpdate)
 					end
 				end)
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local eggState = tbl4.Game and tbl4.Game.EggState
+					local eggState = modules.Game and modules.Game.EggState
 					local EggState
 
 					if eggState then
@@ -2604,7 +2516,7 @@ local function fn2()
 					if EggState and EggState.CarryChanged then
 						EggState.CarryChanged:Connect(function(arg)
 							if arg and arg.IsCarrying ~= nil then
-								tbl5.GotEgg = arg.IsCarrying
+								stealManager.GotEgg = arg.IsCarrying
 								farmState.Carrying = arg.IsCarrying
 
 								if arg.IsCarrying then
@@ -2625,10 +2537,10 @@ local function fn2()
 					end
 				end)
 
-				tbl5.CarryHookDone = true
+				stealManager.CarryHookDone = true
 			end
 
-			tbl5.EggInHand = function()
+			stealManager.EggInHand = function()
 				local playerGui2 = playerGui or localPlayer and localPlayer:FindFirstChild("PlayerGui")
 				local dropHeldEgg = playerGui2 and playerGui2:FindFirstChild("DropHeldEgg")
 
@@ -2645,17 +2557,17 @@ local function fn2()
 				return false
 			end
 
-			tbl5.IsCarryingTargetEgg = function(arg)
+			stealManager.IsCarryingTargetEgg = function(arg)
 				if not arg or arg == "" then
 					if farmState and farmState.Carrying then
 						return true
 					end
 
-					if tbl5.GotEgg then
+					if stealManager.GotEgg then
 						return true
 					end
 
-					if tbl5.EggInHand() then
+					if stealManager.EggInHand() then
 						return true
 					end
 					return false
@@ -2666,13 +2578,13 @@ local function fn2()
 					return true
 				end
 
-				if tbl5.GotEgg and farmState and farmState.CarriedUid == str then
+				if stealManager.GotEgg and farmState and farmState.CarriedUid == str then
 					return true
 				end
 
 				local ok, result = pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local eggState = tbl4.Game and tbl4.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
+					local eggState = modules.Game and modules.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
 
 					if eggState and eggState.ReadFieldEgg then
 						local v7 = eggState.ReadFieldEgg(str)
@@ -2689,7 +2601,7 @@ local function fn2()
 				end
 
 				local ok2, result2 = pcall(function()
-					local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+					local eggCmds = modules.Game and modules.Game.EggCmds
 					local getAreaEggSnapshot = eggCmds and eggCmds.GetAreaEggSnapshot and eggCmds.GetAreaEggSnapshot()
 
 					if getAreaEggSnapshot and type(getAreaEggSnapshot.Records) == "table" then
@@ -2735,30 +2647,30 @@ local function fn2()
 				return false
 			end
 
-			tbl5.ImmortalConnections = { HealthChanged = nil, CharacterRemoving = nil, StateChanged = nil }
+			stealManager.ImmortalConnections = { HealthChanged = nil, CharacterRemoving = nil, StateChanged = nil }
 
-			tbl5.GoToSafeZone = function(arg, arg2)
+			stealManager.GoToSafeZone = function(arg, arg2)
 				local character2 = localPlayer.Character
 				local humanoidRootPart2 = character2 and character2:FindFirstChild("HumanoidRootPart")
 				if not humanoidRootPart2 then
 					return false
 				end
 
-				if tbl5.IsNightOrWallClosed and tbl5.IsNightOrWallClosed() and (not arg or arg < 100) or not arg then
+				if stealManager.IsNightOrWallClosed and stealManager.IsNightOrWallClosed() and (not arg or arg < 100) or not arg then
 					arg = 300
 				end
 
-				local v7 = tbl5.GetSafeZone()
+				local v7 = stealManager.GetSafeZone()
 				if (humanoidRootPart2.Position - v7).Magnitude <= 15 then
 					return true
 				end
-				local getPlot = tbl4.Game and tbl4.Game.GetPlot and tbl4.Game.GetPlot() or require(replicatedStorage.Library.Client.PlotCmds).GetPlotData()
+				local getPlot = modules.Game and modules.Game.GetPlot and modules.Game.GetPlot() or require(replicatedStorage.Library.Client.PlotCmds).GetPlotData()
 
-				if tbl4.Treadmill and (tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() or enabled["Auto Treadmill"]) then
+				if modules.Treadmill and (modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() or enabled["Auto Treadmill"]) then
 					local treadmillBottom = getPlot and getPlot.PlotFolder and getPlot.PlotFolder:FindFirstChild("TreadmillBottom")
 
 					if treadmillBottom and (humanoidRootPart2.Position - treadmillBottom.Position).Magnitude < 15 then
-						tbl4.Treadmill.ExitToSafeZone()
+						modules.Treadmill.ExitToSafeZone()
 						task.wait(0.2)
 					end
 				end
@@ -2773,7 +2685,7 @@ local function fn2()
 					local magnitude = (humanoidRootPart3.Position - n).Magnitude
 
 					if magnitude < 75 and (humanoidRootPart3.Position - v7).Magnitude > 18 and magnitude > 6 then
-						tbl5.TweenTo(n, arg, { Owner = arg2 or "SafeZone" })
+						stealManager.TweenTo(n, arg, { Owner = arg2 or "SafeZone" })
 						task.wait(0.1)
 					end
 				end
@@ -2781,15 +2693,15 @@ local function fn2()
 				local humanoidRootPart4 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
 				if humanoidRootPart4 and (humanoidRootPart4.Position - v7).Magnitude > 15 then
-					tbl5.TweenTo(v7, arg, { Owner = arg2 or "SafeZone" })
+					stealManager.TweenTo(v7, arg, { Owner = arg2 or "SafeZone" })
 					task.wait(0.1)
 				end
 
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					_G.LastAction = "SafeZone: Unstick from Treadmill"
 
-					if tbl4.Treadmill.Unequip then
-						tbl4.Treadmill.Unequip()
+					if modules.Treadmill.Unequip then
+						modules.Treadmill.Unequip()
 					end
 
 					task.wait(0.05)
@@ -2798,7 +2710,7 @@ local function fn2()
 				return true
 			end
 
-			tbl5.ResetHumanoidState = function(arg)
+			stealManager.ResetHumanoidState = function(arg)
 				if not arg then
 					return
 				end
@@ -2829,7 +2741,7 @@ local function fn2()
 				end)
 			end
 
-			tbl5.GetWalkSpeed = function()
+			stealManager.GetWalkSpeed = function()
 				local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 				humanoid2 = humanoid2 and humanoid2.WalkSpeed
 				if humanoid2 and humanoid2 > 0 then
@@ -2838,15 +2750,15 @@ local function fn2()
 				return 16
 			end
 
-			tbl5.CachedRunAnimId = nil
-			tbl5.CurrentRunTrack = nil
-			tbl5.CurrentRunTracks = {}
-			tbl5.RunAnimConnection = nil
-			tbl5.CurrentAnimSpeed = 300
+			stealManager.CachedRunAnimId = nil
+			stealManager.CurrentRunTrack = nil
+			stealManager.CurrentRunTracks = {}
+			stealManager.RunAnimConnection = nil
+			stealManager.CurrentAnimSpeed = 300
 
-			tbl5.GetRunAnimationId = function()
-				if tbl5.CachedRunAnimId and tbl5.CachedRunAnimId ~= "" then
-					return tbl5.CachedRunAnimId
+			stealManager.GetRunAnimationId = function()
+				if stealManager.CachedRunAnimId and stealManager.CachedRunAnimId ~= "" then
+					return stealManager.CachedRunAnimId
 				end
 				local character2 = localPlayer.Character
 				local animate = character2 and character2:FindFirstChild("Animate")
@@ -2855,7 +2767,7 @@ local function fn2()
 					local run = animate:FindFirstChild("run")
 					local animation = run and (run:FindFirstChildWhichIsA("Animation") or run:FindFirstChild("RunAnim"))
 					if animation and animation.AnimationId and animation.AnimationId ~= "" then
-						tbl5.CachedRunAnimId = animation.AnimationId
+						stealManager.CachedRunAnimId = animation.AnimationId
 						return animation.AnimationId
 					end
 					local walk = animate:FindFirstChild("walk")
@@ -2865,21 +2777,21 @@ local function fn2()
 					end
 
 					if walk and walk.AnimationId and walk.AnimationId ~= "" then
-						tbl5.CachedRunAnimId = walk.AnimationId
+						stealManager.CachedRunAnimId = walk.AnimationId
 						return walk.AnimationId
 					end
 				end
 
 				character2 = character2 and character2:FindFirstChildOfClass("Humanoid")
 				if character2 and character2.RigType == Enum.HumanoidRigType.R6 then
-					tbl5.CachedRunAnimId = "rbxassetid://180426354"
+					stealManager.CachedRunAnimId = "rbxassetid://180426354"
 					return "rbxassetid://180426354"
 				end
-				tbl5.CachedRunAnimId = "rbxassetid://913376220"
+				stealManager.CachedRunAnimId = "rbxassetid://913376220"
 				return "rbxassetid://913376220"
 			end
 
-			tbl5.StartRunAnimation = function(arg)
+			stealManager.StartRunAnimation = function(arg)
 				if not enabled["Run Animation"] then
 					return
 				end
@@ -2888,13 +2800,13 @@ local function fn2()
 					return
 				end
 				local humanoid2 = character2:FindFirstChildOfClass("Humanoid")
-				local currentAnimSpeed = tonumber(arg) or tonumber(tbl5.Speed) or 350
-				tbl5.CurrentAnimSpeed = currentAnimSpeed
-				local v7 = tbl5.GetRunAnimationId()
+				local currentAnimSpeed = tonumber(arg) or tonumber(stealManager.Speed) or 350
+				stealManager.CurrentAnimSpeed = currentAnimSpeed
+				local v7 = stealManager.GetRunAnimationId()
 				local flag
 
 				if v7 then
-					flag = not (tbl5.CurrentRunTrack and tbl5.CurrentRunTrack.IsPlaying)
+					flag = not (stealManager.CurrentRunTrack and stealManager.CurrentRunTrack.IsPlaying)
 				else
 					flag = v7
 				end
@@ -2911,17 +2823,17 @@ local function fn2()
 							v8.Looped = true
 							v8:Play(0.1)
 							v8:AdjustSpeed(math.clamp(currentAnimSpeed / 60, 1, 4.5))
-							tbl5.CurrentRunTrack = v8
+							stealManager.CurrentRunTrack = v8
 						end
 
 						animation:Destroy()
 					end)
 				end
 
-				if not tbl5.RunAnimConnection then
+				if not stealManager.RunAnimConnection then
 					local now = os.clock()
 
-					tbl5.RunAnimConnection = runService.RenderStepped:Connect(function()
+					stealManager.RunAnimConnection = runService.RenderStepped:Connect(function()
 						if not enabled["Run Animation"] then
 							return
 						end
@@ -2929,7 +2841,7 @@ local function fn2()
 						if not character3 then
 							return
 						end
-						local n = math.clamp((tonumber(tbl5.CurrentAnimSpeed) or 300) * 0.05, 10, 22)
+						local n = math.clamp((tonumber(stealManager.CurrentAnimSpeed) or 300) * 0.05, 10, 22)
 						local n2 = (os.clock() - now) * n
 
 						if humanoid2 and humanoid2.RigType == Enum.HumanoidRigType.R6 or character3:FindFirstChild("Torso") ~= nil then
@@ -3076,13 +2988,13 @@ local function fn2()
 				end
 			end
 
-			tbl5.StopRunAnimation = function()
-				if tbl5.RunAnimConnection then
+			stealManager.StopRunAnimation = function()
+				if stealManager.RunAnimConnection then
 					pcall(function()
-						tbl5.RunAnimConnection:Disconnect()
+						stealManager.RunAnimConnection:Disconnect()
 					end)
 
-					tbl5.RunAnimConnection = nil
+					stealManager.RunAnimConnection = nil
 				end
 
 				local character2 = localPlayer.Character
@@ -3097,8 +3009,8 @@ local function fn2()
 					end
 				end
 
-				if tbl5.CurrentRunTracks then
-					for _, currentRunTrack in ipairs(tbl5.CurrentRunTracks) do
+				if stealManager.CurrentRunTracks then
+					for _, currentRunTrack in ipairs(stealManager.CurrentRunTracks) do
 						pcall(function()
 							if currentRunTrack.IsPlaying then
 								currentRunTrack:Stop(0.15)
@@ -3108,23 +3020,23 @@ local function fn2()
 						end)
 					end
 
-					tbl5.CurrentRunTracks = {}
+					stealManager.CurrentRunTracks = {}
 				end
 
-				if tbl5.CurrentRunTrack then
+				if stealManager.CurrentRunTrack then
 					pcall(function()
-						if tbl5.CurrentRunTrack.IsPlaying then
-							tbl5.CurrentRunTrack:Stop(0.15)
+						if stealManager.CurrentRunTrack.IsPlaying then
+							stealManager.CurrentRunTrack:Stop(0.15)
 						end
 
-						tbl5.CurrentRunTrack:Destroy()
+						stealManager.CurrentRunTrack:Destroy()
 					end)
 
-					tbl5.CurrentRunTrack = nil
+					stealManager.CurrentRunTrack = nil
 				end
 			end
 
-			tbl5.TweenTo = function(arg, arg2, arg3)
+			stealManager.TweenTo = function(arg, arg2, arg3)
 				local tbl11 = arg3 or {}
 				local character2 = localPlayer.Character
 				local humanoidRootPart2 = character2 and character2:FindFirstChild("HumanoidRootPart")
@@ -3134,18 +3046,18 @@ local function fn2()
 				end
 
 				if humanoid2 then
-					tbl5.ResetHumanoidState(humanoid2)
+					stealManager.ResetHumanoidState(humanoid2)
 				end
 
-				if tbl5.ApplyAntiTpBypass then
-					tbl5.ApplyAntiTpBypass()
+				if stealManager.ApplyAntiTpBypass then
+					stealManager.ApplyAntiTpBypass()
 				else
 					pcall(function()
 						workspace:SetAttribute("ClientObbyAntiTp", false)
 					end)
 				end
 
-				local speed = arg2 or tbl11.Owner == "Steal" and (tbl5.Speed or 350) or tbl5.GetWalkSpeed()
+				local speed = arg2 or tbl11.Owner == "Steal" and (stealManager.Speed or 350) or stealManager.GetWalkSpeed()
 				local position = humanoidRootPart2.Position
 				local magnitude = (arg - position).Magnitude
 				if magnitude <= 0.5 then
@@ -3161,7 +3073,7 @@ local function fn2()
 				end
 
 				if flag then
-					tbl5.StartRunAnimation(speed)
+					stealManager.StartRunAnimation(speed)
 				end
 
 				local n = magnitude / math.max(speed, 5)
@@ -3209,25 +3121,25 @@ local function fn2()
 											if not (tbl11.Owner == "ScrambleDrone" and not enabled["Auto Farm Drones"]) then
 												local flag9, flag10
 
-												if tbl11.Owner and tbl11.Owner ~= "SafeZone" and tbl4.Movement then
-													local v8 = tbl4.Movement.GetOwner()
+												if tbl11.Owner and tbl11.Owner ~= "SafeZone" and modules.Movement then
+													local v8 = modules.Movement.GetOwner()
 
 													if not (v8 and v8 ~= tbl11.Owner) then
 														flag9 = tbl11.AbortOnStealTarget and os.clock() - n2 >= 0.25
 
 														if flag9 then
 															n2 = os.clock()
-															flag10 = enabled["Auto Steal"] and tbl5.PickTarget and tbl5.PickTarget() ~= nil
+															flag10 = enabled["Auto Steal"] and stealManager.PickTarget and stealManager.PickTarget() ~= nil
 
 															if not flag10 then
-																lastHitAt = tbl11.AbortOnGuardHit and tbl5.LastHitAt
-																flag6 = lastHitAt and tbl5.LastHitAt > now
+																lastHitAt = tbl11.AbortOnGuardHit and stealManager.LastHitAt
+																flag6 = lastHitAt and stealManager.LastHitAt > now
 
 																if not flag6 then
 																	targetEggUid = tbl11.AbortOnEggDrop and tbl11.TargetEggUid
 
 																	if targetEggUid then
-																		flag7 = not tbl5.IsCarryingTargetEgg(tbl11.TargetEggUid) and not tbl5.IsInSafeZone()
+																		flag7 = not stealManager.IsCarryingTargetEgg(tbl11.TargetEggUid) and not stealManager.IsInSafeZone()
 
 																		if not flag7 then
 																			midFlightStealSlotKey = tbl11.MidFlightStealTarget and tbl11.MidFlightStealSlotKey
@@ -3243,7 +3155,7 @@ local function fn2()
 
 																					task.spawn(function()
 																						pcall(function()
-																							local remotes = tbl4.Game and tbl4.Game.Remotes
+																							local remotes = modules.Game and modules.Game.Remotes
 
 																							if not remotes then
 																								remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -3262,27 +3174,27 @@ local function fn2()
 																			midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 																			if midFlightStealTarget2 then
-																				if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+																				if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 																					exitTo2 = 13
 																					break
 																				else
 																					flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 																					if flag4 then
-																						flag5 = not tbl5.RunAnimConnection
+																						flag5 = not stealManager.RunAnimConnection
 
 																						if flag5 then
-																							currentRunTrack = tbl5.CurrentRunTrack
-																							isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+																							currentRunTrack = stealManager.CurrentRunTrack
+																							isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 																							flag5 = not isPlaying
 																						end
 
 																						if flag5 then
-																							tbl5.StartRunAnimation(speed)
+																							stealManager.StartRunAnimation(speed)
 																						end
 																					end
 
-																					checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+																					checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 																					if checkTreadmil then
 																						humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3295,8 +3207,8 @@ local function fn2()
 																						end
 
 																						pcall(function()
-																							if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																								tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+																							if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																								modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 																							elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																								replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 																							end
@@ -3355,20 +3267,20 @@ local function fn2()
 																				flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 																				if flag4 then
-																					flag5 = not tbl5.RunAnimConnection
+																					flag5 = not stealManager.RunAnimConnection
 
 																					if flag5 then
-																						currentRunTrack = tbl5.CurrentRunTrack
-																						isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+																						currentRunTrack = stealManager.CurrentRunTrack
+																						isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 																						flag5 = not isPlaying
 																					end
 
 																					if flag5 then
-																						tbl5.StartRunAnimation(speed)
+																						stealManager.StartRunAnimation(speed)
 																					end
 																				end
 
-																				checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+																				checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 																				if checkTreadmil then
 																					humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3381,8 +3293,8 @@ local function fn2()
 																					end
 
 																					pcall(function()
-																						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																							tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+																						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																							modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 																						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																							replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 																						end
@@ -3452,7 +3364,7 @@ local function fn2()
 
 																				task.spawn(function()
 																					pcall(function()
-																						local remotes = tbl4.Game and tbl4.Game.Remotes
+																						local remotes = modules.Game and modules.Game.Remotes
 
 																						if not remotes then
 																							remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -3471,27 +3383,27 @@ local function fn2()
 																		midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 																		if midFlightStealTarget2 then
-																			if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+																			if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 																				exitTo2 = 10
 																				break
 																			else
 																				flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 																				if flag4 then
-																					flag5 = not tbl5.RunAnimConnection
+																					flag5 = not stealManager.RunAnimConnection
 
 																					if flag5 then
-																						currentRunTrack = tbl5.CurrentRunTrack
-																						isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+																						currentRunTrack = stealManager.CurrentRunTrack
+																						isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 																						flag5 = not isPlaying
 																					end
 
 																					if flag5 then
-																						tbl5.StartRunAnimation(speed)
+																						stealManager.StartRunAnimation(speed)
 																					end
 																				end
 
-																				checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+																				checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 																				if checkTreadmil then
 																					humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3504,8 +3416,8 @@ local function fn2()
 																					end
 
 																					pcall(function()
-																						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																							tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+																						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																							modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 																						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																							replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 																						end
@@ -3568,14 +3480,14 @@ local function fn2()
 																end
 															end
 														else
-															lastHitAt = tbl11.AbortOnGuardHit and tbl5.LastHitAt
-															flag6 = lastHitAt and tbl5.LastHitAt > now
+															lastHitAt = tbl11.AbortOnGuardHit and stealManager.LastHitAt
+															flag6 = lastHitAt and stealManager.LastHitAt > now
 
 															if not flag6 then
 																targetEggUid = tbl11.AbortOnEggDrop and tbl11.TargetEggUid
 
 																if targetEggUid then
-																	flag7 = not tbl5.IsCarryingTargetEgg(tbl11.TargetEggUid) and not tbl5.IsInSafeZone()
+																	flag7 = not stealManager.IsCarryingTargetEgg(tbl11.TargetEggUid) and not stealManager.IsInSafeZone()
 
 																	if not flag7 then
 																		midFlightStealSlotKey = tbl11.MidFlightStealTarget and tbl11.MidFlightStealSlotKey
@@ -3591,7 +3503,7 @@ local function fn2()
 
 																				task.spawn(function()
 																					pcall(function()
-																						local remotes = tbl4.Game and tbl4.Game.Remotes
+																						local remotes = modules.Game and modules.Game.Remotes
 
 																						if not remotes then
 																							remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -3610,27 +3522,27 @@ local function fn2()
 																		midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 																		if midFlightStealTarget2 then
-																			if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+																			if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 																				exitTo2 = 7
 																				break
 																			else
 																				flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 																				if flag4 then
-																					flag5 = not tbl5.RunAnimConnection
+																					flag5 = not stealManager.RunAnimConnection
 
 																					if flag5 then
-																						currentRunTrack = tbl5.CurrentRunTrack
-																						isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+																						currentRunTrack = stealManager.CurrentRunTrack
+																						isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 																						flag5 = not isPlaying
 																					end
 
 																					if flag5 then
-																						tbl5.StartRunAnimation(speed)
+																						stealManager.StartRunAnimation(speed)
 																					end
 																				end
 
-																				checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+																				checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 																				if checkTreadmil then
 																					humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3643,8 +3555,8 @@ local function fn2()
 																					end
 
 																					pcall(function()
-																						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																							tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+																						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																							modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 																						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																							replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 																						end
@@ -3716,17 +3628,17 @@ local function fn2()
 
 													if flag9 then
 														n2 = os.clock()
-														flag10 = enabled["Auto Steal"] and tbl5.PickTarget and tbl5.PickTarget() ~= nil
+														flag10 = enabled["Auto Steal"] and stealManager.PickTarget and stealManager.PickTarget() ~= nil
 
 														if not flag10 then
-															lastHitAt = tbl11.AbortOnGuardHit and tbl5.LastHitAt
-															flag6 = lastHitAt and tbl5.LastHitAt > now
+															lastHitAt = tbl11.AbortOnGuardHit and stealManager.LastHitAt
+															flag6 = lastHitAt and stealManager.LastHitAt > now
 
 															if not flag6 then
 																targetEggUid = tbl11.AbortOnEggDrop and tbl11.TargetEggUid
 
 																if targetEggUid then
-																	flag7 = not tbl5.IsCarryingTargetEgg(tbl11.TargetEggUid) and not tbl5.IsInSafeZone()
+																	flag7 = not stealManager.IsCarryingTargetEgg(tbl11.TargetEggUid) and not stealManager.IsInSafeZone()
 
 																	if not flag7 then
 																		midFlightStealSlotKey = tbl11.MidFlightStealTarget and tbl11.MidFlightStealSlotKey
@@ -3742,7 +3654,7 @@ local function fn2()
 
 																				task.spawn(function()
 																					pcall(function()
-																						local remotes = tbl4.Game and tbl4.Game.Remotes
+																						local remotes = modules.Game and modules.Game.Remotes
 
 																						if not remotes then
 																							remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -3761,27 +3673,27 @@ local function fn2()
 																		midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 																		if midFlightStealTarget2 then
-																			if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+																			if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 																				exitTo2 = 4
 																				break
 																			else
 																				flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 																				if flag4 then
-																					flag5 = not tbl5.RunAnimConnection
+																					flag5 = not stealManager.RunAnimConnection
 
 																					if flag5 then
-																						currentRunTrack = tbl5.CurrentRunTrack
-																						isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+																						currentRunTrack = stealManager.CurrentRunTrack
+																						isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 																						flag5 = not isPlaying
 																					end
 
 																					if flag5 then
-																						tbl5.StartRunAnimation(speed)
+																						stealManager.StartRunAnimation(speed)
 																					end
 																				end
 
-																				checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+																				checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 																				if checkTreadmil then
 																					humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3794,8 +3706,8 @@ local function fn2()
 																					end
 
 																					pcall(function()
-																						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																							tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+																						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																							modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 																						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																							replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 																						end
@@ -3875,14 +3787,14 @@ local function fn2()
 							end
 
 							if exitTo2 == 1 then
-								lastHitAt = tbl11.AbortOnGuardHit and tbl5.LastHitAt
-								flag6 = lastHitAt and tbl5.LastHitAt > now
+								lastHitAt = tbl11.AbortOnGuardHit and stealManager.LastHitAt
+								flag6 = lastHitAt and stealManager.LastHitAt > now
 
 								if not flag6 then
 									targetEggUid = tbl11.AbortOnEggDrop and tbl11.TargetEggUid
 
 									if targetEggUid then
-										flag7 = not tbl5.IsCarryingTargetEgg(tbl11.TargetEggUid) and not tbl5.IsInSafeZone()
+										flag7 = not stealManager.IsCarryingTargetEgg(tbl11.TargetEggUid) and not stealManager.IsInSafeZone()
 
 										if not flag7 then
 											midFlightStealSlotKey = tbl11.MidFlightStealTarget and tbl11.MidFlightStealSlotKey
@@ -3898,7 +3810,7 @@ local function fn2()
 
 													task.spawn(function()
 														pcall(function()
-															local remotes = tbl4.Game and tbl4.Game.Remotes
+															local remotes = modules.Game and modules.Game.Remotes
 
 															if not remotes then
 																remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -3917,27 +3829,27 @@ local function fn2()
 											midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 											if midFlightStealTarget2 then
-												if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+												if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 													exitTo = 3
 													break
 												else
 													flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 													if flag4 then
-														flag5 = not tbl5.RunAnimConnection
+														flag5 = not stealManager.RunAnimConnection
 
 														if flag5 then
-															currentRunTrack = tbl5.CurrentRunTrack
-															isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+															currentRunTrack = stealManager.CurrentRunTrack
+															isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 															flag5 = not isPlaying
 														end
 
 														if flag5 then
-															tbl5.StartRunAnimation(speed)
+															stealManager.StartRunAnimation(speed)
 														end
 													end
 
-													checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+													checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 													if checkTreadmil then
 														humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -3950,8 +3862,8 @@ local function fn2()
 														end
 
 														pcall(function()
-															if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-																tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+															if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+																modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 															elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 																replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 															end
@@ -4018,7 +3930,7 @@ local function fn2()
 
 										task.spawn(function()
 											pcall(function()
-												local remotes = tbl4.Game and tbl4.Game.Remotes
+												local remotes = modules.Game and modules.Game.Remotes
 
 												if not remotes then
 													remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -4037,27 +3949,27 @@ local function fn2()
 								midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 								if midFlightStealTarget2 then
-									if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+									if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 										exitTo = 5
 										break
 									else
 										flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 										if flag4 then
-											flag5 = not tbl5.RunAnimConnection
+											flag5 = not stealManager.RunAnimConnection
 
 											if flag5 then
-												currentRunTrack = tbl5.CurrentRunTrack
-												isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+												currentRunTrack = stealManager.CurrentRunTrack
+												isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 												flag5 = not isPlaying
 											end
 
 											if flag5 then
-												tbl5.StartRunAnimation(speed)
+												stealManager.StartRunAnimation(speed)
 											end
 										end
 
-										checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+										checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 										if checkTreadmil then
 											humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4070,8 +3982,8 @@ local function fn2()
 											end
 
 											pcall(function()
-												if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-													tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+												if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+													modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 												elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 													replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 												end
@@ -4122,20 +4034,20 @@ local function fn2()
 								flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 								if flag4 then
-									flag5 = not tbl5.RunAnimConnection
+									flag5 = not stealManager.RunAnimConnection
 
 									if flag5 then
-										currentRunTrack = tbl5.CurrentRunTrack
-										isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+										currentRunTrack = stealManager.CurrentRunTrack
+										isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 										flag5 = not isPlaying
 									end
 
 									if flag5 then
-										tbl5.StartRunAnimation(speed)
+										stealManager.StartRunAnimation(speed)
 									end
 								end
 
-								checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+								checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 								if checkTreadmil then
 									humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4148,8 +4060,8 @@ local function fn2()
 									end
 
 									pcall(function()
-										if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-											tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+										if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+											modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 										elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 											replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 										end
@@ -4208,7 +4120,7 @@ local function fn2()
 
 										task.spawn(function()
 											pcall(function()
-												local remotes = tbl4.Game and tbl4.Game.Remotes
+												local remotes = modules.Game and modules.Game.Remotes
 
 												if not remotes then
 													remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -4227,27 +4139,27 @@ local function fn2()
 								midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 								if midFlightStealTarget2 then
-									if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+									if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 										exitTo = 7
 										break
 									else
 										flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 										if flag4 then
-											flag5 = not tbl5.RunAnimConnection
+											flag5 = not stealManager.RunAnimConnection
 
 											if flag5 then
-												currentRunTrack = tbl5.CurrentRunTrack
-												isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+												currentRunTrack = stealManager.CurrentRunTrack
+												isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 												flag5 = not isPlaying
 											end
 
 											if flag5 then
-												tbl5.StartRunAnimation(speed)
+												stealManager.StartRunAnimation(speed)
 											end
 										end
 
-										checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+										checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 										if checkTreadmil then
 											humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4260,8 +4172,8 @@ local function fn2()
 											end
 
 											pcall(function()
-												if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-													tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+												if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+													modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 												elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 													replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 												end
@@ -4312,20 +4224,20 @@ local function fn2()
 								flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 								if flag4 then
-									flag5 = not tbl5.RunAnimConnection
+									flag5 = not stealManager.RunAnimConnection
 
 									if flag5 then
-										currentRunTrack = tbl5.CurrentRunTrack
-										isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+										currentRunTrack = stealManager.CurrentRunTrack
+										isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 										flag5 = not isPlaying
 									end
 
 									if flag5 then
-										tbl5.StartRunAnimation(speed)
+										stealManager.StartRunAnimation(speed)
 									end
 								end
 
-								checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+								checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 								if checkTreadmil then
 									humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4338,8 +4250,8 @@ local function fn2()
 									end
 
 									pcall(function()
-										if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-											tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+										if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+											modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 										elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 											replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 										end
@@ -4391,20 +4303,20 @@ local function fn2()
 								flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 								if flag4 then
-									flag5 = not tbl5.RunAnimConnection
+									flag5 = not stealManager.RunAnimConnection
 
 									if flag5 then
-										currentRunTrack = tbl5.CurrentRunTrack
-										isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+										currentRunTrack = stealManager.CurrentRunTrack
+										isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 										flag5 = not isPlaying
 									end
 
 									if flag5 then
-										tbl5.StartRunAnimation(speed)
+										stealManager.StartRunAnimation(speed)
 									end
 								end
 
-								checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+								checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 								if checkTreadmil then
 									humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4417,8 +4329,8 @@ local function fn2()
 									end
 
 									pcall(function()
-										if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-											tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+										if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+											modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 										elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 											replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 										end
@@ -4494,7 +4406,7 @@ local function fn2()
 
 								task.spawn(function()
 									pcall(function()
-										local remotes = tbl4.Game and tbl4.Game.Remotes
+										local remotes = modules.Game and modules.Game.Remotes
 
 										if not remotes then
 											remotes = replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Remotes") and require(replicatedStorage.Shared.Remotes)
@@ -4513,27 +4425,27 @@ local function fn2()
 						midFlightStealTarget2 = tbl11.AbortOnEggGrab and tbl11.MidFlightStealTarget
 
 						if midFlightStealTarget2 then
-							if tbl5.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
+							if stealManager.IsCarryingTargetEgg(tbl11.MidFlightStealTarget) then
 								flag2 = true
 								break
 							else
 								flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 								if flag4 then
-									flag5 = not tbl5.RunAnimConnection
+									flag5 = not stealManager.RunAnimConnection
 
 									if flag5 then
-										currentRunTrack = tbl5.CurrentRunTrack
-										isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+										currentRunTrack = stealManager.CurrentRunTrack
+										isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 										flag5 = not isPlaying
 									end
 
 									if flag5 then
-										tbl5.StartRunAnimation(speed)
+										stealManager.StartRunAnimation(speed)
 									end
 								end
 
-								checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+								checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 								if checkTreadmil then
 									humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4546,8 +4458,8 @@ local function fn2()
 									end
 
 									pcall(function()
-										if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-											tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+										if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+											modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 										elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 											replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 										end
@@ -4593,20 +4505,20 @@ local function fn2()
 							flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 							if flag4 then
-								flag5 = not tbl5.RunAnimConnection
+								flag5 = not stealManager.RunAnimConnection
 
 								if flag5 then
-									currentRunTrack = tbl5.CurrentRunTrack
-									isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+									currentRunTrack = stealManager.CurrentRunTrack
+									isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 									flag5 = not isPlaying
 								end
 
 								if flag5 then
-									tbl5.StartRunAnimation(speed)
+									stealManager.StartRunAnimation(speed)
 								end
 							end
 
-							checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+							checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 							if checkTreadmil then
 								humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4619,8 +4531,8 @@ local function fn2()
 								end
 
 								pcall(function()
-									if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-										tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+									if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+										modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 									elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 										replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 									end
@@ -4666,20 +4578,20 @@ local function fn2()
 						flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 						if flag4 then
-							flag5 = not tbl5.RunAnimConnection
+							flag5 = not stealManager.RunAnimConnection
 
 							if flag5 then
-								currentRunTrack = tbl5.CurrentRunTrack
-								isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+								currentRunTrack = stealManager.CurrentRunTrack
+								isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 								flag5 = not isPlaying
 							end
 
 							if flag5 then
-								tbl5.StartRunAnimation(speed)
+								stealManager.StartRunAnimation(speed)
 							end
 						end
 
-						checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+						checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 						if checkTreadmil then
 							humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4692,8 +4604,8 @@ local function fn2()
 							end
 
 							pcall(function()
-								if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-									tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+								if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+									modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 								elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 									replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 								end
@@ -4741,20 +4653,20 @@ local function fn2()
 						flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 						if flag4 then
-							flag5 = not tbl5.RunAnimConnection
+							flag5 = not stealManager.RunAnimConnection
 
 							if flag5 then
-								currentRunTrack = tbl5.CurrentRunTrack
-								isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+								currentRunTrack = stealManager.CurrentRunTrack
+								isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 								flag5 = not isPlaying
 							end
 
 							if flag5 then
-								tbl5.StartRunAnimation(speed)
+								stealManager.StartRunAnimation(speed)
 							end
 						end
 
-						checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+						checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 						if checkTreadmil then
 							humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4767,8 +4679,8 @@ local function fn2()
 							end
 
 							pcall(function()
-								if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-									tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+								if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+									modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 								elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 									replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 								end
@@ -4816,20 +4728,20 @@ local function fn2()
 						flag4 = enabled["Run Animation"] and (tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone")
 
 						if flag4 then
-							flag5 = not tbl5.RunAnimConnection
+							flag5 = not stealManager.RunAnimConnection
 
 							if flag5 then
-								currentRunTrack = tbl5.CurrentRunTrack
-								isPlaying = currentRunTrack and tbl5.CurrentRunTrack.IsPlaying
+								currentRunTrack = stealManager.CurrentRunTrack
+								isPlaying = currentRunTrack and stealManager.CurrentRunTrack.IsPlaying
 								flag5 = not isPlaying
 							end
 
 							if flag5 then
-								tbl5.StartRunAnimation(speed)
+								stealManager.StartRunAnimation(speed)
 							end
 						end
 
-						checkTreadmil = tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()
+						checkTreadmil = tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()
 
 						if checkTreadmil then
 							humanoid3 = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -4842,8 +4754,8 @@ local function fn2()
 							end
 
 							pcall(function()
-								if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-									tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+								if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+									modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 								elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 									replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 								end
@@ -4927,10 +4839,10 @@ local function fn2()
 				end
 
 				if tbl11.Owner == "Steal" or tbl11.Owner == "SafeZone" then
-					tbl5.StopRunAnimation()
+					stealManager.StopRunAnimation()
 				end
 
-				if tbl11.Owner ~= "Treadmill" and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+				if tbl11.Owner ~= "Treadmill" and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					if humanoid2 and humanoid2.Parent then
 						pcall(function()
 							humanoid2.Jump = true
@@ -4939,8 +4851,8 @@ local function fn2()
 					end
 
 					pcall(function()
-						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskDoff then
-							tbl4.Game.Remotes.Treadmill.AskDoff:InvokeServer()
+						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskDoff then
+							modules.Game.Remotes.Treadmill.AskDoff:InvokeServer()
 						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Treadmills: RequestUnequip") then
 							replicatedStorage.Network["Treadmills: RequestUnequip"]:InvokeServer()
 						end
@@ -4950,9 +4862,9 @@ local function fn2()
 				return flag2
 			end
 
-			tbl5.GlideTo = tbl5.TweenTo
+			stealManager.GlideTo = stealManager.TweenTo
 
-			tbl5.ApplyAntiTpBypass = function()
+			stealManager.ApplyAntiTpBypass = function()
 				if enabled["Bypass Anti Teleport"] == false then
 					return
 				end
@@ -4974,26 +4886,26 @@ local function fn2()
 				end)
 			end
 
-			tbl5.SafeTpPos = Vector3.new(512.7, 69, -362.5)
-			tbl5.SafeXLimit = 548
-			tbl5.GraceUntil = 0
-			tbl5.LastHitAt = 0
-			tbl5.RigSyncHookDone = false
-			tbl5.BaitBlacklist = {}
-			tbl5.RagdollActive = false
+			stealManager.SafeTpPos = Vector3.new(512.7, 69, -362.5)
+			stealManager.SafeXLimit = 548
+			stealManager.GraceUntil = 0
+			stealManager.LastHitAt = 0
+			stealManager.RigSyncHookDone = false
+			stealManager.BaitBlacklist = {}
+			stealManager.RagdollActive = false
 
-			tbl5.GraceActive = function()
-				return os.clock() < (tbl5.GraceUntil or 0)
+			stealManager.GraceActive = function()
+				return os.clock() < (stealManager.GraceUntil or 0)
 			end
 
-			tbl5.EnsureRigSyncHook = function()
-				if tbl5.RigSyncHookDone then
+			stealManager.EnsureRigSyncHook = function()
+				if stealManager.RigSyncHookDone then
 					return
 				end
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local remotes = tbl4.Game and tbl4.Game.Remotes or require(ReplicatedStorage.Shared.Remotes)
+					local remotes = modules.Game and modules.Game.Remotes or require(ReplicatedStorage.Shared.Remotes)
 
 					if remotes and remotes.RigSync and remotes.RigSync.Refresh then
 						remotes.RigSync.Refresh.OnClientEvent:Connect(function(arg)
@@ -5009,21 +4921,21 @@ local function fn2()
 
 							if action == "BeginImpulse" or action == "BeginRagdoll" then
 								local n = tonumber(arguments[1]) or 1
-								tbl5.GraceUntil = math.max(tbl5.GraceUntil or 0, os.clock() + math.clamp(n, 1, 5) + 0.5)
-								tbl5.LastHitAt = os.clock()
-								tbl5.RagdollActive = true
+								stealManager.GraceUntil = math.max(stealManager.GraceUntil or 0, os.clock() + math.clamp(n, 1, 5) + 0.5)
+								stealManager.LastHitAt = os.clock()
+								stealManager.RagdollActive = true
 							elseif action == "EndRagdoll" then
-								tbl5.RagdollActive = false
-								tbl5.GraceUntil = math.max(tbl5.GraceUntil or 0, os.clock() + 1)
+								stealManager.RagdollActive = false
+								stealManager.GraceUntil = math.max(stealManager.GraceUntil or 0, os.clock() + 1)
 							end
 						end)
 
-						tbl5.RigSyncHookDone = true
+						stealManager.RigSyncHookDone = true
 					end
 				end)
 			end
 
-			tbl5.GetEggTool = function()
+			stealManager.GetEggTool = function()
 				local character2 = localPlayer.Character
 
 				if character2 then
@@ -5037,7 +4949,7 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.UnequipAllTools = function()
+			stealManager.UnequipAllTools = function()
 				pcall(function()
 					local character2 = localPlayer.Character
 
@@ -5065,7 +4977,7 @@ local function fn2()
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local eggState = tbl4.Game and tbl4.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
+					local eggState = modules.Game and modules.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
 
 					if eggState and eggState.DoffEggTool then
 						eggState.DoffEggTool()
@@ -5074,7 +4986,7 @@ local function fn2()
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+					local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 					if remotes and remotes.EggWorld and remotes.EggWorld.AskDoffTool then
 						remotes.EggWorld.AskDoffTool:InvokeServer()
@@ -5082,9 +4994,9 @@ local function fn2()
 				end)
 			end
 
-			tbl5.FindDroppedFieldEgg = function(arg, arg2)
+			stealManager.FindDroppedFieldEgg = function(arg, arg2)
 				local ReplicatedStorage = game:GetService("ReplicatedStorage")
-				local eggState = tbl4.Game and tbl4.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
+				local eggState = modules.Game and modules.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
 				if not eggState or not eggState.ReadFieldEggs then
 					return nil, math.huge
 				end
@@ -5122,11 +5034,11 @@ local function fn2()
 				return v10, huge
 			end
 
-			tbl5.TeleportToSafeZone = function()
-				return tbl5.GoToSafeZone and tbl5.GoToSafeZone(300, "SafeZone") or false
+			stealManager.TeleportToSafeZone = function()
+				return stealManager.GoToSafeZone and stealManager.GoToSafeZone(300, "SafeZone") or false
 			end
 
-			tbl5.PickForestBaitEgg = function(arg)
+			stealManager.PickForestBaitEgg = function(arg)
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 				if not humanoidRootPart2 then
 					return nil
@@ -5151,7 +5063,7 @@ local function fn2()
 							if position then
 								local magnitude = (humanoidRootPart2.Position - position).Magnitude
 
-								if tbl5.BaitBlacklist[v10.Uid] and now < tbl5.BaitBlacklist[v10.Uid] then
+								if stealManager.BaitBlacklist[v10.Uid] and now < stealManager.BaitBlacklist[v10.Uid] then
 									magnitude += 500
 								end
 
@@ -5193,13 +5105,13 @@ local function fn2()
 				return tbl11, huge
 			end
 
-			tbl5.TriggerForestStrike = function(arg)
+			stealManager.TriggerForestStrike = function(arg)
 				local guard = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Areas") and workspace.World.Areas:FindFirstChild("GuardAreas") and workspace.World.Areas.GuardAreas:FindFirstChild("Forest") and workspace.World.Areas.GuardAreas.Forest:FindFirstChild("Guard")
 				local pivot = guard and guard:GetPivot() or CFrame.new()
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local remotes = tbl4.Game and tbl4.Game.Remotes or require(ReplicatedStorage.Shared.Remotes)
+					local remotes = modules.Game and modules.Game.Remotes or require(ReplicatedStorage.Shared.Remotes)
 
 					if remotes and remotes.GuardPatrol and remotes.GuardPatrol.ForestStrike then
 						remotes.GuardPatrol.ForestStrike:FireServer({ EggUid = arg, GuardCFrame = pivot })
@@ -5207,12 +5119,12 @@ local function fn2()
 				end)
 			end
 
-			tbl5.PickClosestEgg = tbl5.PickForestBaitEgg
+			stealManager.PickClosestEgg = stealManager.PickForestBaitEgg
 
-			tbl5.GrabWithEggStateSpam = function(arg, arg2, arg3, arg4, arg5)
+			stealManager.GrabWithEggStateSpam = function(arg, arg2, arg3, arg4, arg5)
 				arg3 = arg3 or 3
 				local now = os.clock()
-				local eggState = tbl4.Game and tbl4.Game.EggState
+				local eggState = modules.Game and modules.Game.EggState
 				local EggState
 
 				if eggState then
@@ -5221,7 +5133,7 @@ local function fn2()
 					EggState = replicatedStorage:FindFirstChild("Client") and replicatedStorage.Client:FindFirstChild("EggState") and require(replicatedStorage.Client.EggState)
 				end
 
-				local remotes = tbl4.Game and tbl4.Game.Remotes
+				local remotes = modules.Game and modules.Game.Remotes
 				local Remotes_2
 
 				if remotes then
@@ -5235,18 +5147,18 @@ local function fn2()
 				local flag = type(arg2) == "string" and #arg2 > 0 and arg2 or nil
 				local carriedUid = tostring(arg)
 
-				local function fn16()
+				local function getCharacterRootPart()
 					local character2 = localPlayer.Character
 					return character2 and character2:FindFirstChild("HumanoidRootPart")
 				end
 
-				local function fn17()
-					local v7 = fn16()
+				local function moveCarryToFlightPath()
+					local v7 = getCharacterRootPart()
 					if not v7 then
 						return
 					end
-					local v8 = arg5 or tbl5.GetSafeZone()
-					local flightY = tbl5.FlightY or 78
+					local v8 = arg5 or stealManager.GetSafeZone()
+					local flightY = stealManager.FlightY or 78
 					local vector = Vector3.new(v8.X - v7.Position.X, 0, v8.Z - v7.Position.Z)
 					local unit = vector.Magnitude > 0.1 and vector.Unit or Vector3.new(1, 0, 0)
 					local vector2 = Vector3.new(v7.Position.X + unit.X * 28, flightY, v7.Position.Z + unit.Z * 28)
@@ -5263,21 +5175,21 @@ local function fn2()
 						return false
 					end
 
-					if tbl5.IsCarryingTargetEgg(carriedUid) then
-						tbl5.GotEgg = true
+					if stealManager.IsCarryingTargetEgg(carriedUid) then
+						stealManager.GotEgg = true
 						farmState.Carrying = true
 						farmState.CarriedUid = carriedUid
-						fn17()
+						moveCarryToFlightPath()
 						return true
 					end
 
 					local now2 = os.clock()
 
 					if now2 - n > 0.3 then
-						local v7 = fn16()
+						local v7 = getCharacterRootPart()
 
 						if v7 and arg4 and (v7.Position - arg4).Magnitude > 9 then
-							tbl5.TweenTo(arg4, math.max(tbl5.Speed or 650, 750), { Owner = "Steal" })
+							stealManager.TweenTo(arg4, math.max(stealManager.Speed or 650, 750), { Owner = "Steal" })
 							n = now2
 						else
 							n = now2
@@ -5290,10 +5202,10 @@ local function fn2()
 						end)
 
 						if ok and result == true then
-							tbl5.GotEgg = true
+							stealManager.GotEgg = true
 							farmState.Carrying = true
 							farmState.CarriedUid = carriedUid
-							fn17()
+							moveCarryToFlightPath()
 							return true
 						end
 					end
@@ -5350,37 +5262,37 @@ local function fn2()
 					task.wait(0.03)
 				end
 
-				local v7 = tbl5.IsCarryingTargetEgg(carriedUid)
+				local v7 = stealManager.IsCarryingTargetEgg(carriedUid)
 
 				if v7 then
-					tbl5.GotEgg = true
+					stealManager.GotEgg = true
 					farmState.Carrying = true
 					farmState.CarriedUid = carriedUid
-					fn17()
+					moveCarryToFlightPath()
 				end
 
 				return v7
 			end
 
-			tbl5.HopTo = function(arg, arg2)
+			stealManager.HopTo = function(arg, arg2)
 				local tbl11 = arg2 or {}
-				return tbl5.TweenTo(arg, tbl11.Speed or tbl5.GetWalkSpeed(), tbl11)
+				return stealManager.TweenTo(arg, tbl11.Speed or stealManager.GetWalkSpeed(), tbl11)
 			end
 
-			tbl5.HopOnce = tbl5.HopTo
+			stealManager.HopOnce = stealManager.HopTo
 
-			tbl5.StartSpam = function(arg)
-				tbl5.TweenTo(arg, tbl5.Speed or 350, { Owner = "Steal" })
+			stealManager.StartSpam = function(arg)
+				stealManager.TweenTo(arg, stealManager.Speed or 350, { Owner = "Steal" })
 			end
 
-			tbl5.StopSpam = function()
+			stealManager.StopSpam = function()
 			end
 
-			tbl5.StartTeleport = tbl5.StartSpam
-			tbl5.StopTeleport = tbl5.StopSpam
-			tbl5.PlayRunAnimation = tbl5.StartRunAnimation
+			stealManager.StartTeleport = stealManager.StartSpam
+			stealManager.StopTeleport = stealManager.StopSpam
+			stealManager.PlayRunAnimation = stealManager.StartRunAnimation
 
-			tbl5.IsNight = function()
+			stealManager.IsNight = function()
 				local ok, result = pcall(function()
 					if replicatedStorage:FindFirstChild("Shared") and replicatedStorage.Shared:FindFirstChild("Util") and replicatedStorage.Shared.Util:FindFirstChild("AreaEggCycle") then
 						return require(replicatedStorage.Shared.Util.AreaEggCycle)
@@ -5402,7 +5314,7 @@ local function fn2()
 				return false
 			end
 
-			tbl5.IsNightWallClosed = function()
+			stealManager.IsNightWallClosed = function()
 				local ok, result = pcall(function()
 					if replicatedStorage:FindFirstChild("Client") and replicatedStorage.Client:FindFirstChild("AreaEggResetWall") then
 						return require(replicatedStorage.Client.AreaEggResetWall)
@@ -5428,24 +5340,24 @@ local function fn2()
 				return false
 			end
 
-			tbl5.IsNightOrWallClosed = function()
-				return tbl5.IsNight and tbl5.IsNight() or tbl5.IsNightWallClosed()
+			stealManager.IsNightOrWallClosed = function()
+				return stealManager.IsNight and stealManager.IsNight() or stealManager.IsNightWallClosed()
 			end
 
-			tbl5.WasNightOrClosed = true
-			tbl5.PostResetBurstUntil = 0
-			tbl5.LastWorkAt = 0
-			tbl5.StealIdleGrace = 6
+			stealManager.WasNightOrClosed = true
+			stealManager.PostResetBurstUntil = 0
+			stealManager.LastWorkAt = 0
+			stealManager.StealIdleGrace = 6
 
-			tbl5.MarkWork = function()
-				tbl5.LastWorkAt = os.clock()
+			stealManager.MarkWork = function()
+				stealManager.LastWorkAt = os.clock()
 			end
 
-			tbl5.HasRecentWork = function()
-				return os.clock() - (tbl5.LastWorkAt or 0) < (tbl5.StealIdleGrace or 6)
+			stealManager.HasRecentWork = function()
+				return os.clock() - (stealManager.LastWorkAt or 0) < (stealManager.StealIdleGrace or 6)
 			end
 
-			tbl5.IsEggAvailable = function(arg)
+			stealManager.IsEggAvailable = function(arg)
 				if not arg then
 					return false
 				end
@@ -5465,38 +5377,38 @@ local function fn2()
 				return false, nil
 			end
 
-			tbl5.AutoPickTrackedUid = nil
-			tbl5.AutoPickLastPos = nil
-			tbl5.AutoPickWasCarrying = false
-			tbl5.AutoPickRecovering = false
+			stealManager.AutoPickTrackedUid = nil
+			stealManager.AutoPickLastPos = nil
+			stealManager.AutoPickWasCarrying = false
+			stealManager.AutoPickRecovering = false
 
-			tbl5.IsHoldingEgg = function()
+			stealManager.IsHoldingEgg = function()
 				local v7, v8 = farmState.GetCarryState()
 				if v7 then
 					return true, v8
 				end
 
-				if tbl5.EggInHand() then
+				if stealManager.EggInHand() then
 					return true, nil
 				end
 
-				if tbl5.GetEggTool and tbl5.GetEggTool() then
+				if stealManager.GetEggTool and stealManager.GetEggTool() then
 					return true, nil
 				end
 				return false, nil
 			end
 
-			tbl5.DropCurrentEgg = function()
-				tbl5.PlayerDropped = true
+			stealManager.DropCurrentEgg = function()
+				stealManager.PlayerDropped = true
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local eggState = tbl4.Game and tbl4.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
+					local eggState = modules.Game and modules.Game.EggState or ReplicatedStorage:FindFirstChild("Client") and ReplicatedStorage.Client:FindFirstChild("EggState") and require(ReplicatedStorage.Client.EggState)
 
 					if eggState and eggState.DropFieldEgg then
 						eggState.DropFieldEgg("Manual")
 					else
-						local remotes = tbl4.Game and tbl4.Game.Remotes
+						local remotes = modules.Game and modules.Game.Remotes
 
 						if not remotes then
 							remotes = ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
@@ -5512,8 +5424,8 @@ local function fn2()
 					local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 
 					if humanoid2 then
-						tbl5.ResetHumanoidState(humanoid2)
-						local getEggTool = tbl5.GetEggTool and tbl5.GetEggTool()
+						stealManager.ResetHumanoidState(humanoid2)
+						local getEggTool = stealManager.GetEggTool and stealManager.GetEggTool()
 
 						if getEggTool then
 							local backpack = localPlayer:FindFirstChildOfClass("Backpack")
@@ -5540,20 +5452,20 @@ local function fn2()
 					end
 				end)
 
-				tbl5.GotEgg = false
+				stealManager.GotEgg = false
 				farmState.Carrying = false
 				farmState.CarriedUid = nil
 				farmState.CarriedAssetCategory = nil
 				farmState.OptimisticCarry = false
-				tbl5.AutoPickWasCarrying = false
-				tbl5.AutoPickTrackedUid = nil
+				stealManager.AutoPickWasCarrying = false
+				stealManager.AutoPickTrackedUid = nil
 			end
 
-			tbl5.FireGrab = function(arg)
+			stealManager.FireGrab = function(arg)
 				if not arg or not arg.Uid then
 					return
 				end
-				local resolveSlotKey = tbl5.ResolveSlotKey and tbl5.ResolveSlotKey(arg) or nil
+				local resolveSlotKey = stealManager.ResolveSlotKey and stealManager.ResolveSlotKey(arg) or nil
 
 				pcall(function()
 					if fireproximityprompt then
@@ -5571,7 +5483,7 @@ local function fn2()
 				end)
 
 				pcall(function()
-					local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+					local eggCmds = modules.Game and modules.Game.EggCmds
 					if Remotes_ and Remotes_.EggWorld and Remotes_.EggWorld.AskFieldEggCarry then
 						return Remotes_.EggWorld.AskFieldEggCarry:InvokeServer({ Uid = arg.Uid, FirstAreaSlotKey = resolveSlotKey })
 					end
@@ -5582,58 +5494,58 @@ local function fn2()
 				end)
 			end
 
-			tbl5.PlayerDropped = false
-			tbl5.PlayerDropHookDone = false
+			stealManager.PlayerDropped = false
+			stealManager.PlayerDropHookDone = false
 
-			tbl5.HookDropButton = function(arg)
+			stealManager.HookDropButton = function(arg)
 				if not arg then
 					return
 				end
 
-				local function fn16(descendant)
+				local function bindDropButton(descendant)
 					if descendant:IsA("GuiButton") then
 						descendant.Activated:Connect(function()
-							tbl5.PlayerDropped = true
+							stealManager.PlayerDropped = true
 						end)
 					end
 				end
 
 				for _, descendant in ipairs(arg:GetDescendants()) do
-					fn16(descendant)
+					bindDropButton(descendant)
 				end
 
-				arg.DescendantAdded:Connect(fn16)
+				arg.DescendantAdded:Connect(bindDropButton)
 			end
 
-			tbl5.EnsurePlayerDropHook = function()
-				if tbl5.PlayerDropHookDone then
+			stealManager.EnsurePlayerDropHook = function()
+				if stealManager.PlayerDropHookDone then
 					return
 				end
-				tbl5.PlayerDropHookDone = true
+				stealManager.PlayerDropHookDone = true
 				local playerGui2 = playerGui or localPlayer and localPlayer:FindFirstChild("PlayerGui")
 				local dropHeldEgg = playerGui2 and playerGui2:FindFirstChild("DropHeldEgg")
 
 				if dropHeldEgg then
-					tbl5.HookDropButton(dropHeldEgg)
+					stealManager.HookDropButton(dropHeldEgg)
 				end
 
 				if playerGui2 then
 					playerGui2.ChildAdded:Connect(function(child)
 						if child.Name == "DropHeldEgg" then
-							tbl5.HookDropButton(child)
+							stealManager.HookDropButton(child)
 						end
 					end)
 				end
 
 				pcall(function()
-					local eggState = tbl4.Game and tbl4.Game.EggState
+					local eggState = modules.Game and modules.Game.EggState
 
 					if eggState and type(eggState.DropFieldEgg) == "function" then
 						local dropFieldEgg = eggState.DropFieldEgg
 						local flag = false
 
 						eggState.DropFieldEgg = function(...)
-							tbl5.PlayerDropped = true
+							stealManager.PlayerDropped = true
 							if flag then
 								return
 							end
@@ -5646,96 +5558,96 @@ local function fn2()
 				end)
 			end
 
-			tbl5.AutoPickStep = function()
-				tbl5.EnsurePlayerDropHook()
+			stealManager.AutoPickStep = function()
+				stealManager.EnsurePlayerDropHook()
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-				local v7, v8 = tbl5.IsHoldingEgg()
+				local v7, v8 = stealManager.IsHoldingEgg()
 
 				if v7 then
-					if not tbl5.AutoPickWasCarrying then
-						tbl5.PlayerDropped = false
+					if not stealManager.AutoPickWasCarrying then
+						stealManager.PlayerDropped = false
 					end
 
-					tbl5.AutoPickWasCarrying = true
-					tbl5.AutoPickRecovering = false
+					stealManager.AutoPickWasCarrying = true
+					stealManager.AutoPickRecovering = false
 
 					if v8 then
-						tbl5.AutoPickTrackedUid = v8
-					elseif not tbl5.AutoPickTrackedUid then
+						stealManager.AutoPickTrackedUid = v8
+					elseif not stealManager.AutoPickTrackedUid then
 						farmState.RefreshEggs(true)
 						local v9 = ipairs
 						local eggs = farmState.Eggs or {}
 
 						for _, egg in v9(eggs) do
 							if egg.CarrierUserId == localPlayer.UserId then
-								tbl5.AutoPickTrackedUid = egg.Uid
+								stealManager.AutoPickTrackedUid = egg.Uid
 								break
 							end
 						end
 					end
 
 					if humanoidRootPart2 then
-						tbl5.AutoPickLastPos = humanoidRootPart2.Position
+						stealManager.AutoPickLastPos = humanoidRootPart2.Position
 					end
 
 					return
 				end
 
-				if not tbl5.AutoPickWasCarrying then
+				if not stealManager.AutoPickWasCarrying then
 					return
 				end
 
-				if tbl5.PlayerDropped then
-					tbl5.PlayerDropped = false
-					tbl5.AutoPickWasCarrying = false
-					tbl5.AutoPickTrackedUid = nil
+				if stealManager.PlayerDropped then
+					stealManager.PlayerDropped = false
+					stealManager.AutoPickWasCarrying = false
+					stealManager.AutoPickTrackedUid = nil
 					return
 				end
 
-				if tbl5.IsInSafeZone() then
-					tbl5.AutoPickWasCarrying = false
-					tbl5.AutoPickTrackedUid = nil
+				if stealManager.IsInSafeZone() then
+					stealManager.AutoPickWasCarrying = false
+					stealManager.AutoPickTrackedUid = nil
 					return
 				end
 
-				local baitBlacklist = tbl5.AutoPickTrackedUid and tbl5.BaitBlacklist and tbl5.BaitBlacklist[tbl5.AutoPickTrackedUid]
+				local baitBlacklist = stealManager.AutoPickTrackedUid and stealManager.BaitBlacklist and stealManager.BaitBlacklist[stealManager.AutoPickTrackedUid]
 				local flag
 
 				if baitBlacklist then
-					local v9 = tbl5.BaitBlacklist[tbl5.AutoPickTrackedUid]
+					local v9 = stealManager.BaitBlacklist[stealManager.AutoPickTrackedUid]
 					flag = os.clock() < v9
 				else
 					flag = baitBlacklist
 				end
 
 				if flag then
-					tbl5.AutoPickWasCarrying = false
-					tbl5.AutoPickTrackedUid = nil
+					stealManager.AutoPickWasCarrying = false
+					stealManager.AutoPickTrackedUid = nil
 					return
 				end
 
-				if enabled["Auto Steal"] and tbl5.IsStealing then
+				if enabled["Auto Steal"] and stealManager.IsStealing then
 					return
 				end
 
-				if tbl5.AutoPickRecovering then
+				if stealManager.AutoPickRecovering then
 					return
 				end
-				tbl5.AutoPickRecovering = true
+				stealManager.AutoPickRecovering = true
 				local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 
 				if humanoid2 then
-					tbl5.ResetHumanoidState(humanoid2)
+					stealManager.ResetHumanoidState(humanoid2)
 				end
 
-				humanoidRootPart2 = humanoidRootPart2 and humanoidRootPart2.Position or tbl5.AutoPickLastPos
-				local autoPickTrackedUid = tbl5.AutoPickTrackedUid
+				humanoidRootPart2 = humanoidRootPart2 and humanoidRootPart2.Position or stealManager.AutoPickLastPos
+				local autoPickTrackedUid = stealManager.AutoPickTrackedUid
 				_G.LastAction = "Auto Pick: Recovering Dropped Egg"
 				movement.Claim("AutoPick", 90)
 
 				while true do
-					if enabled["Auto Pick Dropped Egg"] and not tbl2.Unloaded then
-						if not tbl5.IsHoldingEgg() then
+					if enabled["Auto Pick Dropped Egg"] and not shx.Unloaded then
+						if not stealManager.IsHoldingEgg() then
 							farmState.RefreshEggs(true)
 							local v9, flag2
 
@@ -5801,7 +5713,7 @@ local function fn2()
 
 								if position and humanoidRootPart3 and (humanoidRootPart3.Position - position).Magnitude > 20 then
 									if humanoid2 then
-										tbl5.ResetHumanoidState(humanoid2)
+										stealManager.ResetHumanoidState(humanoid2)
 									end
 
 									humanoidRootPart3.CFrame = CFrame.new(position.X, position.Y + 2.8, position.Z)
@@ -5809,8 +5721,8 @@ local function fn2()
 									humanoidRootPart3.AssemblyAngularVelocity = Vector3.zero
 								end
 
-								tbl5.FireGrab(v9)
-								tbl5.FireGrab(v9)
+								stealManager.FireGrab(v9)
+								stealManager.FireGrab(v9)
 							end
 
 							local flag3 = not flag2
@@ -5832,17 +5744,17 @@ local function fn2()
 
 				movement.Release("AutoPick")
 
-				if tbl5.IsHoldingEgg() then
-					tbl5.GotEgg = true
+				if stealManager.IsHoldingEgg() then
+					stealManager.GotEgg = true
 					farmState.Carrying = true
 					_G.LastAction = "Auto Pick: Egg Recovered"
 				end
 
-				tbl5.AutoPickWasCarrying = false
-				tbl5.AutoPickRecovering = false
+				stealManager.AutoPickWasCarrying = false
+				stealManager.AutoPickRecovering = false
 			end
 
-			tbl5.IsEggInfested = function(arg)
+			stealManager.IsEggInfested = function(arg)
 				if not arg then
 					return false
 				end
@@ -5870,12 +5782,12 @@ local function fn2()
 				return false
 			end
 
-			tbl5.PickTarget = function()
-				local scramble = tbl4.Scramble
+			stealManager.PickTarget = function()
+				local scramble = modules.Scramble
 				if (scramble and scramble.Config and scramble.Config.OrchestratorMode or "Prioritize Event") ~= "Steal Idle" and enabled["Auto Farm Drones"] and scramble and scramble.CanRun and scramble.CanRun() then
 					return nil
 				end
-				farmState.RefreshEggs(os.clock() < (tbl5.PostResetBurstUntil or 0))
+				farmState.RefreshEggs(os.clock() < (stealManager.PostResetBurstUntil or 0))
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 				if not humanoidRootPart2 then
 					return nil
@@ -5898,9 +5810,9 @@ local function fn2()
 					end
 				end
 
-				for k in pairs(tbl5.FailCounts) do
+				for k in pairs(stealManager.FailCounts) do
 					if not tbl11[k] then
-						tbl5.FailCounts[k] = nil
+						stealManager.FailCounts[k] = nil
 					end
 				end
 
@@ -5911,7 +5823,7 @@ local function fn2()
 					local flag = type(v9) == "table" and v9.State == "Dropped"
 
 					if flag then
-						flag = (tbl5.FailCounts[v9.Uid] or 0) < 4
+						flag = (stealManager.FailCounts[v9.Uid] or 0) < 4
 					end
 
 					if flag then
@@ -5919,9 +5831,9 @@ local function fn2()
 					end
 				end
 
-				local flag = tbl5.HasSpecificEggFilters == true
+				local flag = stealManager.HasSpecificEggFilters == true
 				local prioritizeRiftEgg = enabled["Prioritize Rift Egg"] or enabled["Prioritize Rift Recipe Eggs"]
-				local rift = tbl4.Rift
+				local rift = modules.Rift
 
 				if prioritizeRiftEgg and rift and rift.IsBannerDesired and not rift.IsBannerDesired() then
 					prioritizeRiftEgg = false
@@ -5949,7 +5861,7 @@ local function fn2()
 					end
 				end
 
-				local getMinRarity = tbl5.GetMinRarity and tbl5.GetMinRarity() or tbl5.MinRarity or 1
+				local getMinRarity = stealManager.GetMinRarity and stealManager.GetMinRarity() or stealManager.MinRarity or 1
 				local v9, v10, v11 = pairs(farmState.Eggs or {})
 				local n = -math.huge
 				local v12 = nil
@@ -5965,9 +5877,9 @@ local function fn2()
 					end
 
 					if flag2 then
-						local v14 = tbl5.IsSpecificEggSelected(v13)
-						local v15 = tbl5.IsAreaSelected(v13.AreaId)
-						local flag3 = tbl5.GetEggRarityNumber(v13) >= getMinRarity
+						local v14 = stealManager.IsSpecificEggSelected(v13)
+						local v15 = stealManager.IsAreaSelected(v13.AreaId)
+						local flag3 = stealManager.GetEggRarityNumber(v13) >= getMinRarity
 						local assetCategory = prioritizeRiftEgg and v13.AssetCategory
 
 						if assetCategory then
@@ -5987,7 +5899,7 @@ local function fn2()
 								local position = v13.BottomCFrame and v13.BottomCFrame.Position or v13.BoundsCFrame and v13.BoundsCFrame.Position or nil
 
 								if position then
-									local v17 = tbl5.CalculateEggScore(v13, (humanoidRootPart2.Position - position).Magnitude)
+									local v17 = stealManager.CalculateEggScore(v13, (humanoidRootPart2.Position - position).Magnitude)
 									local n2
 
 									if flag and v14 then
@@ -6042,8 +5954,8 @@ local function fn2()
 									AssetCategory = attribute,
 								}
 
-								local v14 = tbl5.IsSpecificEggSelected(tbl13)
-								local flag4 = tbl5.GetEggRarityNumber(tbl13) >= getMinRarity
+								local v14 = stealManager.IsSpecificEggSelected(tbl13)
+								local flag4 = stealManager.GetEggRarityNumber(tbl13) >= getMinRarity
 								local flag5
 
 								if prioritizeRiftEgg then
@@ -6080,7 +5992,7 @@ local function fn2()
 				AreaEggSlotIdentity = require(game:GetService("ReplicatedStorage").Shared.Util.AreaEggSlotIdentity)
 			end)
 
-			tbl5.ResolveSlotKey = function(arg)
+			stealManager.ResolveSlotKey = function(arg)
 				if not arg or not arg.Uid then
 					return nil
 				end
@@ -6107,10 +6019,10 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.Collect = function(arg)
+			stealManager.Collect = function(arg)
 				local ok, result = pcall(function()
-					if tbl4.Game and tbl4.Game.EggState and tbl4.Game.EggState.ReadFieldEggs then
-						return tbl4.Game.EggState.ReadFieldEggs()
+					if modules.Game and modules.Game.EggState and modules.Game.EggState.ReadFieldEggs then
+						return modules.Game.EggState.ReadFieldEggs()
 					end
 					return require(game:GetService("ReplicatedStorage").Client.EggState).ReadFieldEggs()
 				end)
@@ -6120,7 +6032,7 @@ local function fn2()
 
 				for _, v10 in v7, v8, v9 do
 					if v10.State == arg then
-						local v11 = tbl5.ResolveSlotKey(v10)
+						local v11 = stealManager.ResolveSlotKey(v10)
 
 						local ok2, result2 = pcall(function()
 							if Remotes_ and Remotes_.EggWorld and Remotes_.EggWorld.AskFieldEggCarry then
@@ -6138,38 +6050,38 @@ local function fn2()
 				return n
 			end
 
-			tbl5.IsActiveStealing = function()
+			stealManager.IsActiveStealing = function()
 				if not enabled["Auto Steal"] then
 					return false
 				end
 
-				if tbl5.IsStealing then
+				if stealManager.IsStealing then
 					return true
 				end
 
-				if tbl5.IsNightOrWallClosed and tbl5.IsNightOrWallClosed() then
+				if stealManager.IsNightOrWallClosed and stealManager.IsNightOrWallClosed() then
 					return false
 				end
 
 				if farmState.GetCarryState() then
 					return true
 				end
-				return tbl5.PickTarget() ~= nil
+				return stealManager.PickTarget() ~= nil
 			end
 
-			tbl5.ReturnEggToSafeZone = function(arg, arg2, arg3)
-				arg2 = arg2 or tbl5.GetSafeZone()
+			stealManager.ReturnEggToSafeZone = function(arg, arg2, arg3)
+				arg2 = arg2 or stealManager.GetSafeZone()
 
-				local function fn16()
-					return tbl5.IsCarryingTargetEgg(arg.Uid)
+				local function isCarryingTargetEgg()
+					return stealManager.IsCarryingTargetEgg(arg.Uid)
 				end
 
-				local function fn17()
-					return tbl5.IsGroundedInSafeZone and tbl5.IsGroundedInSafeZone(arg2)
+				local function isGroundedInSafeZone()
+					return stealManager.IsGroundedInSafeZone and stealManager.IsGroundedInSafeZone(arg2)
 				end
 
-				if not fn16() then
-					tbl5.GotEgg = false
+				if not isCarryingTargetEgg() then
+					stealManager.GotEgg = false
 					farmState.Carrying = false
 					farmState.CarriedUid = nil
 					return false
@@ -6177,7 +6089,7 @@ local function fn2()
 
 				local claimedAt = farmState.ClaimedAt or 0
 				os.clock()
-				_G.LastAction = string.format("Steal: Memulai transit ke SafeZone (Elevasi Y=%.0f)...", tbl5.FlightY or 78)
+				_G.LastAction = string.format("Steal: Memulai transit ke SafeZone (Elevasi Y=%.0f)...", stealManager.FlightY or 78)
 				local n = 0
 				local vector
 
@@ -6187,7 +6099,7 @@ local function fn2()
 						return false
 					end
 
-					if not fn16() then
+					if not isCarryingTargetEgg() then
 						local flag = (farmState.ClaimedAt or 0) > claimedAt
 
 						if flag then
@@ -6195,8 +6107,8 @@ local function fn2()
 							flag = os.clock() - claimedAt2 < 4
 						end
 
-						if fn17() and flag then
-							tbl5.GotEgg = false
+						if isGroundedInSafeZone() and flag then
+							stealManager.GotEgg = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
 							return true
@@ -6206,10 +6118,10 @@ local function fn2()
 
 						if n > 5 then
 							_G.LastAction = string.format("Steal: Recovery Gagal (%d/%d). Mengembalikan ke SafeZone...", n, 5)
-							tbl5.GotEgg = false
+							stealManager.GotEgg = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
-							tbl5.EnsureAtSafeZone(true)
+							stealManager.EnsureAtSafeZone(true)
 							return false
 						end
 
@@ -6217,7 +6129,7 @@ local function fn2()
 						local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 
 						if humanoid2 then
-							tbl5.ResetHumanoidState(humanoid2)
+							stealManager.ResetHumanoidState(humanoid2)
 						end
 
 						local now = os.clock()
@@ -6228,7 +6140,7 @@ local function fn2()
 							if not (os.clock() - now < 0.4) then
 								break
 							else
-								local v7 = tbl5.FindDroppedFieldEgg(arg.Uid, humanoidRootPart2.Position)
+								local v7 = stealManager.FindDroppedFieldEgg(arg.Uid, humanoidRootPart2.Position)
 
 								if v7 then
 									local position = v7.BottomCFrame and v7.BottomCFrame.Position or v7.BoundsCFrame and v7.BoundsCFrame.Position
@@ -6250,15 +6162,15 @@ local function fn2()
 
 							if magnitude > 2.5 then
 								_G.LastAction = string.format("Steal: Tween ke telur jatuh (%.1f studs)...", magnitude)
-								tbl5.TweenTo(vector, math.max(tbl5.Speed or 650, 750), { Owner = "Steal" })
+								stealManager.TweenTo(vector, math.max(stealManager.Speed or 650, 750), { Owner = "Steal" })
 							end
 						end
 
-						local grabWithEggStateSpam = tbl5.GrabWithEggStateSpam
+						local grabWithEggStateSpam = stealManager.GrabWithEggStateSpam
 						local uid = arg.Uid
 						vector = vector or humanoidRootPart2.Position
 
-						if grabWithEggStateSpam(uid, arg3, 2, vector, arg2) or fn16() then
+						if grabWithEggStateSpam(uid, arg3, 2, vector, arg2) or isCarryingTargetEgg() then
 							_G.LastAction = string.format("Steal: [Recovery %d/%d] Re-grab Sukses via Tween! Melanjutkan transit...", n, 5)
 						else
 							task.wait(0.04)
@@ -6267,7 +6179,7 @@ local function fn2()
 						continue
 					end
 
-					local flightY = tbl5.FlightY or 78
+					local flightY = stealManager.FlightY or 78
 					local position = humanoidRootPart2.Position
 					local vector2 = Vector3.new(arg2.X - position.X, 0, arg2.Z - position.Z)
 					local magnitude = vector2.Magnitude
@@ -6275,22 +6187,22 @@ local function fn2()
 
 					if position.Y < flightY - 2 and magnitude > 15 then
 						local n2 = math.min(30, magnitude * 0.5)
-						tbl5.TweenTo(Vector3.new(position.X + unit.X * n2, flightY, position.Z + unit.Z * n2), math.max(tbl5.Speed or 650, 600), { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
+						stealManager.TweenTo(Vector3.new(position.X + unit.X * n2, flightY, position.Z + unit.Z * n2), math.max(stealManager.Speed or 650, 600), { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
 					end
 
-					if fn16() then
+					if isCarryingTargetEgg() then
 						local vector3 = Vector3.new(arg2.X, flightY, arg2.Z)
 
 						if (Vector3.new(humanoidRootPart2.Position.X, 0, humanoidRootPart2.Position.Z) - Vector3.new(arg2.X, 0, arg2.Z)).Magnitude > 8 then
-							tbl5.TweenTo(vector3, tbl5.Speed or 650, { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
+							stealManager.TweenTo(vector3, stealManager.Speed or 650, { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
 						end
 					end
 
-					if fn16() then
-						tbl5.TweenTo(Vector3.new(arg2.X, arg2.Y, arg2.Z), math.max(tbl5.Speed or 650, 400), { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
+					if isCarryingTargetEgg() then
+						stealManager.TweenTo(Vector3.new(arg2.X, arg2.Y, arg2.Z), math.max(stealManager.Speed or 650, 400), { Owner = "Steal", TargetEggUid = arg.Uid, AbortOnEggDrop = true })
 					end
 
-					if fn17() then
+					if isGroundedInSafeZone() then
 						_G.LastAction = "Steal: Karakter mendarat di SafeZone, menunggu claim server..."
 						local now = os.clock()
 
@@ -6302,7 +6214,7 @@ local function fn2()
 								flag = os.clock() - claimedAt2 < 4
 							end
 
-							if not (flag or not fn16()) then
+							if not (flag or not isCarryingTargetEgg()) then
 								task.wait(0.05)
 								continue
 							end
@@ -6316,12 +6228,12 @@ local function fn2()
 							flag = os.clock() - claimedAt2 < 4
 						end
 
-						if not flag and not fn16() and fn17() then
+						if not flag and not isCarryingTargetEgg() and isGroundedInSafeZone() then
 							flag = true
 						end
 
 						if flag then
-							tbl5.GotEgg = false
+							stealManager.GotEgg = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
 							return true
@@ -6334,53 +6246,53 @@ local function fn2()
 				return false
 			end
 
-			tbl5.Step = function()
+			stealManager.Step = function()
 				if not enabled["Auto Steal"] then
-					tbl4.Movement.Release("Steal")
+					modules.Movement.Release("Steal")
 					return
 				end
 
-				if enabled["Auto Farm Drones"] and tbl4.Scramble and tbl4.Scramble.CanRun and tbl4.Scramble.CanRun() then
-					tbl5.IsStealing = false
-					tbl5.GotEgg = false
-					tbl4.Movement.Release("Steal")
-					tbl5.StopRunAnimation()
+				if enabled["Auto Farm Drones"] and modules.Scramble and modules.Scramble.CanRun and modules.Scramble.CanRun() then
+					stealManager.IsStealing = false
+					stealManager.GotEgg = false
+					modules.Movement.Release("Steal")
+					stealManager.StopRunAnimation()
 					return
 				end
 
-				if farmState.IsPlacing or tbl4.PlaceEgg and tbl4.PlaceEgg.Busy or tbl4.Sell and tbl4.Sell.IsSelling then
+				if farmState.IsPlacing or modules.PlaceEgg and modules.PlaceEgg.Busy or modules.Sell and modules.Sell.IsSelling then
 					return
 				end
 
-				if tbl5.IsNightOrWallClosed and tbl5.IsNightOrWallClosed() then
-					tbl5.WasNightOrClosed = true
+				if stealManager.IsNightOrWallClosed and stealManager.IsNightOrWallClosed() then
+					stealManager.WasNightOrClosed = true
 					_G.LastAction = "Steal: Night/Wall Standby (SafeZone Prepare)"
-					tbl5.IsStealing = false
-					tbl5.GotEgg = false
+					stealManager.IsStealing = false
+					stealManager.GotEgg = false
 					farmState.Carrying = false
 					farmState.CarriedUid = nil
 					farmState.CarriedAssetCategory = nil
 					farmState.OptimisticCarry = false
-					tbl4.Movement.Release("Steal")
-					tbl5.StopRunAnimation()
-					if enabled["Auto Treadmill"] and tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+					modules.Movement.Release("Steal")
+					stealManager.StopRunAnimation()
+					if enabled["Auto Treadmill"] and modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 						return
 					end
 					local n = 0
 
 					while true do
-						if (not tbl5.IsInSafeZone() or tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil()) and n < 4 then
-							if not (not enabled["Auto Steal"] or not tbl5.IsNightOrWallClosed()) then
+						if (not stealManager.IsInSafeZone() or modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil()) and n < 4 then
+							if not (not enabled["Auto Steal"] or not stealManager.IsNightOrWallClosed()) then
 								n += 1
 
-								if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+								if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 									_G.LastAction = "Steal: Night Exit Treadmill (" .. tostring(n) .. ")"
-									tbl4.Treadmill.ExitToSafeZone()
+									modules.Treadmill.ExitToSafeZone()
 									task.wait(0.05)
 								end
 
 								_G.LastAction = "Steal: Night Go SafeZone (" .. tostring(n) .. ")"
-								tbl5.GoToSafeZone(300, "SafeZone")
+								stealManager.GoToSafeZone(300, "SafeZone")
 								task.wait(0.08)
 								continue
 							end
@@ -6392,35 +6304,35 @@ local function fn2()
 					return
 				end
 
-				local getCapacityStatus = tbl4.PlaceEgg and tbl4.PlaceEgg.GetCapacityStatus and tbl4.PlaceEgg.GetCapacityStatus()
+				local getCapacityStatus = modules.PlaceEgg and modules.PlaceEgg.GetCapacityStatus and modules.PlaceEgg.GetCapacityStatus()
 				local canPlace = getCapacityStatus and getCapacityStatus.canPlace
 				getCapacityStatus = getCapacityStatus and getCapacityStatus.unplacedCount or 0
-				if enabled["Auto Place Egg"] and tbl4.PlaceEgg and tbl4.PlaceEgg.Rule == "After Steal" and canPlace then
-					tbl4.PlaceEgg.Step()
+				if enabled["Auto Place Egg"] and modules.PlaceEgg and modules.PlaceEgg.Rule == "After Steal" and canPlace then
+					modules.PlaceEgg.Step()
 					return
 				end
 
-				if enabled["Auto Place Egg"] and tbl4.PlaceEgg and tbl4.PlaceEgg.Rule == "Egg Inventory Full" and getCapacityStatus >= 95 and canPlace then
-					tbl4.PlaceEgg.Step()
+				if enabled["Auto Place Egg"] and modules.PlaceEgg and modules.PlaceEgg.Rule == "Egg Inventory Full" and getCapacityStatus >= 95 and canPlace then
+					modules.PlaceEgg.Step()
 					return
 				end
 
-				if tbl5.WasNightOrClosed then
-					tbl5.WasNightOrClosed = false
-					tbl5.PostResetBurstUntil = os.clock() + 20
+				if stealManager.WasNightOrClosed then
+					stealManager.WasNightOrClosed = false
+					stealManager.PostResetBurstUntil = os.clock() + 20
 					farmState.RefreshEggs(true)
 				end
 
 				_G.LastAction = "Steal: Scan Target Egg"
-				local v7 = tbl5.PickTarget()
+				local v7 = stealManager.PickTarget()
 
 				if not v7 then
 					_G.LastAction = "Steal: Idle (No Target)"
-					tbl5.IsStealing = false
-					tbl5.GotEgg = false
-					tbl4.Movement.Release("Steal")
-					tbl5.StopRunAnimation()
-					local getEggTool = tbl5.GetEggTool and tbl5.GetEggTool()
+					stealManager.IsStealing = false
+					stealManager.GotEgg = false
+					modules.Movement.Release("Steal")
+					stealManager.StopRunAnimation()
+					local getEggTool = stealManager.GetEggTool and stealManager.GetEggTool()
 
 					if getEggTool then
 						local backpack = localPlayer:FindFirstChildOfClass("Backpack")
@@ -6430,15 +6342,15 @@ local function fn2()
 						end
 					end
 
-					if enabled["Auto Place Egg"] and tbl4.PlaceEgg and tbl4.PlaceEgg.Rule == "Steal Idle" and canPlace then
-						tbl4.PlaceEgg.Step()
+					if enabled["Auto Place Egg"] and modules.PlaceEgg and modules.PlaceEgg.Rule == "Steal Idle" and canPlace then
+						modules.PlaceEgg.Step()
 					end
 
-					if tbl4.Sell and tbl4.Sell.Step then
-						tbl4.Sell.Step()
+					if modules.Sell and modules.Sell.Step then
+						modules.Sell.Step()
 					end
 
-					if os.clock() < (tbl5.PostResetBurstUntil or 0) then
+					if os.clock() < (stealManager.PostResetBurstUntil or 0) then
 						task.wait(0.05)
 					else
 						task.wait(0.5)
@@ -6447,32 +6359,32 @@ local function fn2()
 					return
 				end
 
-				if not tbl4.Movement.Claim("Steal", 100) then
+				if not modules.Movement.Claim("Steal", 100) then
 					return
 				end
-				tbl5.EnsureCarryHook()
-				tbl5.EnsureClaimHook()
-				tbl5.EnsureRigSyncHook()
-				tbl5.ApplyAntiTpBypass()
+				stealManager.EnsureCarryHook()
+				stealManager.EnsureClaimHook()
+				stealManager.EnsureRigSyncHook()
+				stealManager.ApplyAntiTpBypass()
 
 				if stored.StateUpdate["Anti Knockback / Ragdoll"] and not enabled["Anti Knockback / Ragdoll"] then
 					stored.StateUpdate["Anti Knockback / Ragdoll"]:Set(true)
 				end
 
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					_G.LastAction = "Steal: Exit Treadmill"
-					tbl4.Treadmill.ExitToSafeZone()
+					modules.Treadmill.ExitToSafeZone()
 				end
 
-				tbl5.UnequipAllTools()
-				tbl5.GotEgg = false
+				stealManager.UnequipAllTools()
+				stealManager.GotEgg = false
 				farmState.Carrying = false
 				farmState.CarriedUid = nil
 				farmState.CarriedAssetCategory = nil
 				farmState.OptimisticCarry = false
 				local position = v7.BottomCFrame and v7.BottomCFrame.Position or v7.BoundsCFrame and v7.BoundsCFrame.Position or nil
 				if not position then
-					tbl4.Movement.Release("Steal")
+					modules.Movement.Release("Steal")
 					return
 				end
 				local areaEggSlotsClient = workspace:FindFirstChild("AreaEggSlotsClient") and workspace.AreaEggSlotsClient:FindFirstChild(v7.Uid)
@@ -6486,38 +6398,38 @@ local function fn2()
 					vector = Vector3.new(position.X, v7.BottomCFrame and v7.BottomCFrame.Position.Y + 1.8 or position.Y + 1.8, position.Z)
 				end
 
-				local resolveSlotKey = tbl5.ResolveSlotKey and tbl5.ResolveSlotKey(v7) or nil
-				local v8 = tbl5.GetSafeZone()
-				tbl5.IsStealing = true
-				tbl5.GotEgg = false
+				local resolveSlotKey = stealManager.ResolveSlotKey and stealManager.ResolveSlotKey(v7) or nil
+				local v8 = stealManager.GetSafeZone()
+				stealManager.IsStealing = true
+				stealManager.GotEgg = false
 				farmState.ClaimedAt = 0
 				local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 				local humanoid2 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 
 				if not humanoidRootPart2 or not humanoid2 then
-					tbl5.IsStealing = false
-					tbl4.Movement.Release("Steal")
+					stealManager.IsStealing = false
+					modules.Movement.Release("Steal")
 					return
 				end
 
 				local magnitude = (humanoidRootPart2.Position - vector).Magnitude
 				_G.LastAction = string.format("Steal: Target %s [%s] (%.0f studs)", tostring(v7.AssetCategory or "Egg"), tostring(v7.AreaId), magnitude)
-				tbl5.EnsureAtSafeZone()
+				stealManager.EnsureAtSafeZone()
 				local humanoidRootPart3 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
 				if not humanoidRootPart3 then
-					tbl5.IsStealing = false
-					tbl4.Movement.Release("Steal")
+					stealManager.IsStealing = false
+					modules.Movement.Release("Steal")
 					return
 				end
 
-				if enabled["Auto Farm Drones"] and tbl4.Scramble and tbl4.Scramble.CanRun and tbl4.Scramble.CanRun() then
-					tbl5.IsStealing = false
-					tbl4.Movement.Release("Steal")
+				if enabled["Auto Farm Drones"] and modules.Scramble and modules.Scramble.CanRun and modules.Scramble.CanRun() then
+					stealManager.IsStealing = false
+					modules.Movement.Release("Steal")
 					return
 				end
 
-				local v9 = tbl5.PickForestBaitEgg(v7.Uid)
+				local v9 = stealManager.PickForestBaitEgg(v7.Uid)
 				local flag = not v9
 
 				if flag then
@@ -6535,8 +6447,8 @@ local function fn2()
 				if not v9 then
 					_G.LastAction = "Steal: Waiting for Forest Bait Egg to spawn..."
 					task.wait(0.3)
-					tbl5.IsStealing = false
-					tbl4.Movement.Release("Steal")
+					stealManager.IsStealing = false
+					modules.Movement.Release("Steal")
 					return
 				end
 
@@ -6544,13 +6456,13 @@ local function fn2()
 				local areaEggSlotsClient2 = workspace:FindFirstChild("AreaEggSlotsClient") and workspace.AreaEggSlotsClient:FindFirstChild(v9.Uid)
 				areaEggSlotsClient2 = areaEggSlotsClient2 and areaEggSlotsClient2:FindFirstChild("Hitbox")
 				areaEggSlotsClient2 = areaEggSlotsClient2 and areaEggSlotsClient2.Position or position2 and position2 + Vector3.new(0, 1.5, 0) or Vector3.new(595, 69, -325)
-				local resolveSlotKey2 = tbl5.ResolveSlotKey and tbl5.ResolveSlotKey(v9) or nil
+				local resolveSlotKey2 = stealManager.ResolveSlotKey and stealManager.ResolveSlotKey(v9) or nil
 				local magnitude2 = (humanoidRootPart3.Position - areaEggSlotsClient2).Magnitude
 
 				if magnitude2 > 120 then
-					_G.LastAction = string.format("Steal: Jarak bait jauh (%.0f studs). Meluncur mendatar di Y=%.0f...", magnitude2, tbl5.FlightY or 78)
-					tbl5.TweenTo(Vector3.new(areaEggSlotsClient2.X, tbl5.FlightY or 78, areaEggSlotsClient2.Z), math.max(tbl5.Speed or 650, 750), { Owner = "Steal" })
-					tbl5.TweenTo(areaEggSlotsClient2, math.max(tbl5.Speed or 650, 450), { Owner = "Steal" })
+					_G.LastAction = string.format("Steal: Jarak bait jauh (%.0f studs). Meluncur mendatar di Y=%.0f...", magnitude2, stealManager.FlightY or 78)
+					stealManager.TweenTo(Vector3.new(areaEggSlotsClient2.X, stealManager.FlightY or 78, areaEggSlotsClient2.Z), math.max(stealManager.Speed or 650, 750), { Owner = "Steal" })
+					stealManager.TweenTo(areaEggSlotsClient2, math.max(stealManager.Speed or 650, 450), { Owner = "Steal" })
 				else
 					_G.LastAction = string.format("Steal: [1/4] Snap ke Forest Bait Egg (%s)...", tostring(v9.AssetCategory or "Egg"))
 					humanoidRootPart3.CFrame = CFrame.new(areaEggSlotsClient2)
@@ -6572,13 +6484,13 @@ local function fn2()
 						humanoidRootPart3.AssemblyLinearVelocity = Vector3.zero
 
 						local ok, result = pcall(function()
-							local eggState = tbl4.Game and tbl4.Game.EggState or replicatedStorage:FindFirstChild("Client") and replicatedStorage.Client:FindFirstChild("EggState") and require(replicatedStorage.Client.EggState)
+							local eggState = modules.Game and modules.Game.EggState or replicatedStorage:FindFirstChild("Client") and replicatedStorage.Client:FindFirstChild("EggState") and require(replicatedStorage.Client.EggState)
 							if eggState and eggState.CarryFieldEgg then
 								return eggState.CarryFieldEgg(v9.Uid, resolveSlotKey2)
 							end
 						end)
 
-						if result == true or tbl5.IsHoldingEgg() then
+						if result == true or stealManager.IsHoldingEgg() then
 							flag2 = true
 							break
 						else
@@ -6587,14 +6499,14 @@ local function fn2()
 					end
 				end
 
-				if flag2 or tbl5.IsHoldingEgg() then
+				if flag2 or stealManager.IsHoldingEgg() then
 					_G.LastAction = "Steal: [2/4] Trigger ForestStrike (Grace Impact)..."
-					tbl5.RagdollActive = false
-					tbl5.TriggerForestStrike(v9.Uid)
+					stealManager.RagdollActive = false
+					stealManager.TriggerForestStrike(v9.Uid)
 					local now2 = os.clock()
 
 					while os.clock() - now2 < 1.2 do
-						if not (tbl5.RagdollActive or tbl5.GraceActive()) then
+						if not (stealManager.RagdollActive or stealManager.GraceActive()) then
 							task.wait(0.04)
 							continue
 						end
@@ -6602,12 +6514,12 @@ local function fn2()
 					end
 
 					if v9.Uid ~= v7.Uid then
-						if tbl5.BaitBlacklist then
-							tbl5.BaitBlacklist[v9.Uid] = os.clock() + 4
+						if stealManager.BaitBlacklist then
+							stealManager.BaitBlacklist[v9.Uid] = os.clock() + 4
 						end
 
-						tbl5.DropCurrentEgg()
-						tbl5.GotEgg = false
+						stealManager.DropCurrentEgg()
+						stealManager.GotEgg = false
 						farmState.Carrying = false
 						farmState.CarriedUid = nil
 					end
@@ -6619,7 +6531,7 @@ local function fn2()
 					local humanoid3 = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
 
 					if humanoid3 then
-						tbl5.ResetHumanoidState(humanoid3)
+						stealManager.ResetHumanoidState(humanoid3)
 					end
 
 					task.wait(0.08)
@@ -6632,7 +6544,7 @@ local function fn2()
 						if magnitude3 > 14 then
 							if magnitude3 < magnitude4 or magnitude4 > 40 then
 								_G.LastAction = string.format("Steal: Teleport mendarat setengah jalan (%.0f studs tersisa). Melanjutkan via TweenTo...", magnitude3)
-								tbl5.TweenTo(vector, 300, { Owner = "Steal" })
+								stealManager.TweenTo(vector, 300, { Owner = "Steal" })
 								task.wait(0.04)
 							else
 								humanoidRootPart4.CFrame = CFrame.new(vector)
@@ -6643,15 +6555,15 @@ local function fn2()
 					end
 
 					_G.LastAction = string.format("Steal: [4/4] Memulai grab spam untuk telur %s (UID: %s, SlotKey: %s)...", tostring(v7.AssetCategory or "Egg"), v7.Uid, tostring(resolveSlotKey))
-					local gotEgg = tbl5.GrabWithEggStateSpam(v7.Uid, resolveSlotKey, math.max(tbl5.Timeout or 3.5, 3.5), vector, v8) or tbl5.GotEgg or tbl5.IsCarryingTargetEgg(v7.Uid)
+					local gotEgg = stealManager.GrabWithEggStateSpam(v7.Uid, resolveSlotKey, math.max(stealManager.Timeout or 3.5, 3.5), vector, v8) or stealManager.GotEgg or stealManager.IsCarryingTargetEgg(v7.Uid)
 
 					if not gotEgg then
 						local n = 0
 
 						while true do
-							if not (tbl5.GotEgg or tbl5.IsCarryingTargetEgg(v7.Uid)) and n < 2 then
+							if not (stealManager.GotEgg or stealManager.IsCarryingTargetEgg(v7.Uid)) and n < 2 then
 								local areaEggSlotsClient3 = workspace:FindFirstChild("AreaEggSlotsClient") and workspace.AreaEggSlotsClient:FindFirstChild(v7.Uid)
-								local findDroppedFieldEgg = tbl5.FindDroppedFieldEgg and tbl5.FindDroppedFieldEgg(v7.Uid)
+								local findDroppedFieldEgg = stealManager.FindDroppedFieldEgg and stealManager.FindDroppedFieldEgg(v7.Uid)
 
 								if not areaEggSlotsClient3 and not findDroppedFieldEgg then
 									_G.LastAction = "Steal: Target egg sudah tidak ada di map / dicuri player lain"
@@ -6665,7 +6577,7 @@ local function fn2()
 										n += 1
 										_G.LastAction = string.format("Steal: Timeout retry (%d/%d) - Micro-validating location...", n, 2)
 										local n2 = n == 1 and 0 or 1.5707963267948966
-										tbl5.TweenTo(vector + Vector3.new(math.cos(n2) * 3, 0.4, math.sin(n2) * 3), 300, { Owner = "Steal" })
+										stealManager.TweenTo(vector + Vector3.new(math.cos(n2) * 3, 0.4, math.sin(n2) * 3), 300, { Owner = "Steal" })
 
 										if character2 then
 											pcall(function()
@@ -6673,9 +6585,9 @@ local function fn2()
 											end)
 										end
 
-										tbl5.TweenTo(vector, 300, { Owner = "Steal" })
+										stealManager.TweenTo(vector, 300, { Owner = "Steal" })
 										task.wait(0.08)
-										gotEgg = tbl5.GrabWithEggStateSpam(v7.Uid, resolveSlotKey, 1.5, vector, v8) or tbl5.GotEgg or tbl5.IsCarryingTargetEgg(v7.Uid)
+										gotEgg = stealManager.GrabWithEggStateSpam(v7.Uid, resolveSlotKey, 1.5, vector, v8) or stealManager.GotEgg or stealManager.IsCarryingTargetEgg(v7.Uid)
 										continue
 									end
 								end
@@ -6688,22 +6600,22 @@ local function fn2()
 					if gotEgg then
 						_G.LastAction = "Steal: Returning Egg to SafeZone..."
 
-						if tbl5.ReturnEggToSafeZone(v7, v8, resolveSlotKey) then
+						if stealManager.ReturnEggToSafeZone(v7, v8, resolveSlotKey) then
 							_G.LastAction = string.format("Steal: Successfully Stolen & Claimed %s!", tostring(v7.AssetCategory or "Egg"))
-							tbl5.FailCounts[v7.Uid] = nil
+							stealManager.FailCounts[v7.Uid] = nil
 							tbl6.BlockedEggs[v7.Uid] = os.clock() + 30
 
-							if tbl5.BaitBlacklist then
-								tbl5.BaitBlacklist[v7.Uid] = os.clock() + 30
+							if stealManager.BaitBlacklist then
+								stealManager.BaitBlacklist[v7.Uid] = os.clock() + 30
 							end
 
-							if tbl4.DebugInspector then
-								tbl4.DebugInspector.SuccessClaims = (tbl4.DebugInspector.SuccessClaims or 0) + 1
-								tbl4.DebugInspector.Log(string.format("Successfully Claimed %s!", tostring(v7.AssetCategory or "Egg")), "STEAL")
+							if modules.DebugInspector then
+								modules.DebugInspector.SuccessClaims = (modules.DebugInspector.SuccessClaims or 0) + 1
+								modules.DebugInspector.Log(string.format("Successfully Claimed %s!", tostring(v7.AssetCategory or "Egg")), "STEAL")
 							end
 
-							if tbl4.WebhookManager then
-								tbl4.WebhookManager.QueueEggSteal(v7)
+							if modules.WebhookManager then
+								modules.WebhookManager.QueueEggSteal(v7)
 							end
 
 							for i = #farmState.Eggs, 1, -1 do
@@ -6714,7 +6626,7 @@ local function fn2()
 							end
 
 							task.wait(0.15)
-							tbl5.UnequipAllTools()
+							stealManager.UnequipAllTools()
 							local now3 = os.clock()
 
 							while os.clock() - now3 < 1 do
@@ -6727,29 +6639,29 @@ local function fn2()
 								break
 							end
 
-							tbl5.UnequipAllTools()
-							tbl5.GotEgg = false
-							tbl5.IsStealing = false
+							stealManager.UnequipAllTools()
+							stealManager.GotEgg = false
+							stealManager.IsStealing = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
 							farmState.CarriedAssetCategory = nil
 							farmState.OptimisticCarry = false
 
-							if tbl4.Sell and tbl4.Sell.Step then
-								tbl4.Sell.Step()
+							if modules.Sell and modules.Sell.Step then
+								modules.Sell.Step()
 							end
 
 							task.wait(0.2)
 						else
 							_G.LastAction = "Steal: Failed to Deliver Egg. SafeZone Return..."
-							tbl5.UnequipAllTools()
-							tbl5.GotEgg = false
-							tbl5.IsStealing = false
+							stealManager.UnequipAllTools()
+							stealManager.GotEgg = false
+							stealManager.IsStealing = false
 							farmState.Carrying = false
 							farmState.CarriedUid = nil
 							farmState.CarriedAssetCategory = nil
 							farmState.OptimisticCarry = false
-							tbl5.EnsureAtSafeZone(true)
+							stealManager.EnsureAtSafeZone(true)
 						end
 					else
 						_G.LastAction = "Steal: Failed to Grab Egg (Timeout). SafeZone Return..."
@@ -6757,61 +6669,61 @@ local function fn2()
 						if v7 and v7.Uid then
 							tbl6.BlockedEggs[v7.Uid] = os.clock() + 5
 
-							if tbl5.BaitBlacklist then
-								tbl5.BaitBlacklist[v7.Uid] = os.clock() + 5
+							if stealManager.BaitBlacklist then
+								stealManager.BaitBlacklist[v7.Uid] = os.clock() + 5
 							end
 						end
 
-						tbl5.UnequipAllTools()
-						tbl5.GotEgg = false
-						tbl5.IsStealing = false
+						stealManager.UnequipAllTools()
+						stealManager.GotEgg = false
+						stealManager.IsStealing = false
 						farmState.Carrying = false
 						farmState.CarriedUid = nil
 						farmState.CarriedAssetCategory = nil
 						farmState.OptimisticCarry = false
-						tbl5.EnsureAtSafeZone(true)
+						stealManager.EnsureAtSafeZone(true)
 					end
 
-					tbl5.IsStealing = false
-					tbl5.StopRunAnimation()
-					tbl4.Movement.Release("Steal")
+					stealManager.IsStealing = false
+					stealManager.StopRunAnimation()
+					modules.Movement.Release("Steal")
 					return
 				end
 
 				_G.LastAction = "Steal: Bait egg gagal diambil dalam 1.5 detik. Mencoba ulang bait..."
 
-				if tbl5.BaitBlacklist then
-					tbl5.BaitBlacklist[v9.Uid] = os.clock() + 2
+				if stealManager.BaitBlacklist then
+					stealManager.BaitBlacklist[v9.Uid] = os.clock() + 2
 				end
 
-				tbl5.IsStealing = false
-				tbl4.Movement.Release("Steal")
+				stealManager.IsStealing = false
+				modules.Movement.Release("Steal")
 			end
 
-			return tbl5
+			return stealManager
 		end
 
-		tbl4.Steal = fn14()
+		modules.Steal = createStealModule()
 
-		local function fn15()
-			local tbl5 = {}
+		local function createPlaceEggModule()
+			local placeEggManager = {}
 
-			if tbl4.Game then
+			if modules.Game then
 			end
 
-			tbl5.Busy = false
-			tbl5.LastRun = 0
-			tbl5.LastFinishAt = 0
-			tbl5.Rule = "Steal Idle"
-			tbl5.MaxPlaced = 30
-			tbl5.FailCounts = {}
-			tbl5.FailAt = {}
-			tbl5.FailRetryCooldown = 45
-			tbl5.SelectionMode = "Choose Any Egg"
+			placeEggManager.Busy = false
+			placeEggManager.LastRun = 0
+			placeEggManager.LastFinishAt = 0
+			placeEggManager.Rule = "Steal Idle"
+			placeEggManager.MaxPlaced = 30
+			placeEggManager.FailCounts = {}
+			placeEggManager.FailAt = {}
+			placeEggManager.FailRetryCooldown = 45
+			placeEggManager.SelectionMode = "Choose Any Egg"
 
-			tbl5.GetEggWeight = function(arg)
-				if tbl4.Steal and tbl4.Steal.GetEggWeight then
-					local ok, result = pcall(tbl4.Steal.GetEggWeight, arg)
+			placeEggManager.GetEggWeight = function(arg)
+				if modules.Steal and modules.Steal.GetEggWeight then
+					local ok, result = pcall(modules.Steal.GetEggWeight, arg)
 					if ok and type(result) == "number" then
 						return result
 					end
@@ -6820,11 +6732,11 @@ local function fn2()
 				return 0
 			end
 
-			tbl5.GetEggIncome = function(arg)
+			placeEggManager.GetEggIncome = function(arg)
 				if not arg then
 					return 0
 				end
-				local assets = tbl4.Game and tbl4.Game.Assets
+				local assets = modules.Game and modules.Game.Assets
 				local assetCategory = arg.AssetCategory and (assets and assets.Directory or assets or {})[arg.AssetCategory]
 				local n = assetCategory and tonumber(assetCategory.EarningRate) or 0
 				if n <= 0 then
@@ -6842,25 +6754,25 @@ local function fn2()
 				return n * n3
 			end
 
-			tbl5.SortByPriority = function(arg, arg2)
+			placeEggManager.SortByPriority = function(arg, arg2)
 				if #arg < 2 then
 					return arg
 				end
 				local prioritizeRiftEgg = enabled["Prioritize Rift Egg"] or enabled["Prioritize Rift Recipe Eggs"]
 				local tbl6 = {}
 
-				if prioritizeRiftEgg and tbl4.Rift and tbl4.Rift.GetMissingRequirements then
+				if prioritizeRiftEgg and modules.Rift and modules.Rift.GetMissingRequirements then
 					pcall(function()
-						tbl6 = tbl4.Rift.GetMissingRequirements()
+						tbl6 = modules.Rift.GetMissingRequirements()
 					end)
 				end
 
-				local selectionMode = tbl5.SelectionMode or "Choose Any Egg"
-				local getEggWeight = (selectionMode == "Highest KG" or selectionMode == "Lowest KG") and tbl5.GetEggWeight or tbl5.GetEggIncome
+				local selectionMode = placeEggManager.SelectionMode or "Choose Any Egg"
+				local getEggWeight = (selectionMode == "Highest KG" or selectionMode == "Lowest KG") and placeEggManager.GetEggWeight or placeEggManager.GetEggIncome
 				local flag = selectionMode == "Highest KG" or selectionMode == "Highest Money/Sec"
 				local tbl7 = {}
 
-				local function fn16(arg3)
+				local function getEggSortScore(arg3)
 					if tbl7[arg3] == nil then
 						local v7 = arg2 and arg2[arg3]
 						local n = 0
@@ -6884,8 +6796,8 @@ local function fn2()
 				end
 
 				table.sort(arg, function(arg3, arg4)
-					local v7 = fn16(arg3)
-					local v8 = fn16(arg4)
+					local v7 = getEggSortScore(arg3)
+					local v8 = getEggSortScore(arg4)
 					if v7 == v8 then
 						return tostring(arg3) < tostring(arg4)
 					end
@@ -6895,7 +6807,7 @@ local function fn2()
 				return arg
 			end
 
-			tbl5.IsEggInfested = function(arg, arg2)
+			placeEggManager.IsEggInfested = function(arg, arg2)
 				if arg and arg.HasParasite == true then
 					return true
 				end
@@ -6916,19 +6828,19 @@ local function fn2()
 				return false
 			end
 
-			tbl5.LastCapCheck = 0
-			tbl5.CachedCapacity = nil
+			placeEggManager.LastCapCheck = 0
+			placeEggManager.CachedCapacity = nil
 
-			tbl5.GetCapacityStatus = function(arg)
+			placeEggManager.GetCapacityStatus = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.CachedCapacity and now - tbl5.LastCapCheck < 1.5 then
-					return tbl5.CachedCapacity
+				if not arg and placeEggManager.CachedCapacity and now - placeEggManager.LastCapCheck < 1.5 then
+					return placeEggManager.CachedCapacity
 				end
-				tbl5.LastCapCheck = now
-				local eggCmds = tbl4.Game and tbl4.Game.EggCmds
-				local save = tbl4.Game and tbl4.Game.Save
+				placeEggManager.LastCapCheck = now
+				local eggCmds = modules.Game and modules.Game.EggCmds
+				local save = modules.Game and modules.Game.Save
 
-				if tbl4.Game then
+				if modules.Game then
 				end
 
 				local get = save and save.Get
@@ -6954,7 +6866,7 @@ local function fn2()
 					end
 				end
 
-				local maxPlaced = tbl5.MaxPlaced or 30
+				local maxPlaced = placeEggManager.MaxPlaced or 30
 				local getRuntimeSnapshot = eggCmds and eggCmds.GetRuntimeSnapshot and eggCmds.GetRuntimeSnapshot() or {}
 				local tbl6 = {}
 
@@ -6970,19 +6882,19 @@ local function fn2()
 
 				for k, v7 in pairs(tbl6) do
 					if v7.Placement == nil then
-						local n3 = tbl5.FailCounts[k] or 0
+						local n3 = placeEggManager.FailCounts[k] or 0
 						local flag = n3 >= 3
 						local flag2
 
 						if flag then
-							flag2 = os.clock() - (tbl5.FailAt[k] or 0) >= (tbl5.FailRetryCooldown or 45)
+							flag2 = os.clock() - (placeEggManager.FailAt[k] or 0) >= (placeEggManager.FailRetryCooldown or 45)
 						else
 							flag2 = flag
 						end
 
 						if flag2 then
-							tbl5.FailCounts[k] = nil
-							tbl5.FailAt[k] = nil
+							placeEggManager.FailCounts[k] = nil
+							placeEggManager.FailAt[k] = nil
 							n3 = 0
 						end
 
@@ -6994,7 +6906,7 @@ local function fn2()
 					end
 				end
 
-				tbl5.SortByPriority(tbl7, tbl6)
+				placeEggManager.SortByPriority(tbl7, tbl6)
 				local flag = n2 >= maxPlaced
 
 				local cachedCapacity = {
@@ -7007,47 +6919,47 @@ local function fn2()
 					canPlace = #tbl7 > 0 and not flag,
 				}
 
-				tbl5.CachedCapacity = cachedCapacity
+				placeEggManager.CachedCapacity = cachedCapacity
 				return cachedCapacity
 			end
 
-			tbl5.ShouldRunNow = function()
-				if tbl5.Busy or tbl4.FarmState and tbl4.FarmState.IsPlacing then
+			placeEggManager.ShouldRunNow = function()
+				if placeEggManager.Busy or modules.FarmState and modules.FarmState.IsPlacing then
 					return true
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
+				if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
 					return false
 				end
 
-				if os.clock() - (tbl5.LastFinishAt or 0) < 2.5 then
+				if os.clock() - (placeEggManager.LastFinishAt or 0) < 2.5 then
 					return false
 				end
-				local v7 = tbl5.GetCapacityStatus()
+				local v7 = placeEggManager.GetCapacityStatus()
 				if not v7 or not v7.canPlace then
 					return false
 				end
 
-				if tbl5.Rule == "Egg Inventory Full" then
+				if placeEggManager.Rule == "Egg Inventory Full" then
 					return v7.unplacedCount >= 95
 				end
 
-				if tbl5.Rule == "Steal Idle" then
-					return not (tbl4.Steal and tbl4.Steal.IsActiveStealing and tbl4.Steal.IsActiveStealing()) and v7.canPlace
+				if placeEggManager.Rule == "Steal Idle" then
+					return not (modules.Steal and modules.Steal.IsActiveStealing and modules.Steal.IsActiveStealing()) and v7.canPlace
 				end
 
-				if tbl5.Rule == "After Steal" then
+				if placeEggManager.Rule == "After Steal" then
 					return v7.canPlace
 				end
 				return false
 			end
 
-			tbl5.GetUnplacedUids = function()
-				return tbl5.GetCapacityStatus().unplacedUids
+			placeEggManager.GetUnplacedUids = function()
+				return placeEggManager.GetCapacityStatus().unplacedUids
 			end
 
-			tbl5.GetPlacedWorldPositions = function(arg)
-				local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+			placeEggManager.GetPlacedWorldPositions = function(arg)
+				local eggCmds = modules.Game and modules.Game.EggCmds
 				local getRuntimeSnapshot = eggCmds and eggCmds.GetRuntimeSnapshot and eggCmds.GetRuntimeSnapshot() or {}
 
 				if not getRuntimeSnapshot or #getRuntimeSnapshot == 0 then
@@ -7097,7 +7009,7 @@ local function fn2()
 				return tbl6
 			end
 
-			tbl5.FindNextFreeSlot = function(arg, arg2)
+			placeEggManager.FindNextFreeSlot = function(arg, arg2)
 				local petArea = arg.PetArea
 				local centerPoint = arg.CenterPoint
 				local n = petArea.Size.X * 0.5 - 3.5
@@ -7130,23 +7042,23 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.Step = function()
-				if tbl5.Busy then
+			placeEggManager.Step = function()
+				if placeEggManager.Busy then
 					return
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
+				if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
 					return
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsActiveStealing and tbl4.Steal.IsActiveStealing() then
+				if modules.Steal and modules.Steal.IsActiveStealing and modules.Steal.IsActiveStealing() then
 					return
 				end
-				local v7 = tbl5.GetCapacityStatus()
+				local v7 = placeEggManager.GetCapacityStatus()
 				if v7.isPenFull or v7.unplacedCount == 0 then
 					return
 				end
-				local plotCmds = tbl4.Game and tbl4.Game.PlotCmds
+				local plotCmds = modules.Game and modules.Game.PlotCmds
 				local getPlotData = plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
 
 				if not getPlotData or not getPlotData.PetArea or not getPlotData.CenterPoint then
@@ -7177,22 +7089,22 @@ local function fn2()
 					return
 				end
 
-				if not tbl4.Movement.Claim("PlaceEgg", 80) then
+				if not modules.Movement.Claim("PlaceEgg", 80) then
 					return
 				end
 
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					_G.LastAction = "PlaceEgg: Exit Treadmill"
-					tbl4.Treadmill.ExitToSafeZone()
+					modules.Treadmill.ExitToSafeZone()
 				end
 
-				tbl5.Busy = true
-				tbl4.FarmState.IsPlacing = true
+				placeEggManager.Busy = true
+				modules.FarmState.IsPlacing = true
 				_G.LastAction = "PlaceEgg: Init"
 				local n = getPlotData.CenterPoint and getPlotData.CenterPoint.Position + Vector3.new(0, 2.8, 0)
 				local n2 = getPlotData.PetArea.Position + Vector3.new(0, 2.8, 0)
 
-				local function fn16()
+				local function moveToPetArea()
 					local character3 = localPlayer.Character
 					local humanoidRootPart2 = character3 and character3:FindFirstChild("HumanoidRootPart")
 					local magnitude = humanoidRootPart2 and (humanoidRootPart2.Position - n2).Magnitude or 999
@@ -7204,11 +7116,11 @@ local function fn2()
 								_G.LastAction = "PlaceEgg: Move to PetArea Pen (" .. tostring(n3 + 1) .. ")"
 
 								if n and humanoidRootPart2 and (humanoidRootPart2.Position - n).Magnitude > 15 and magnitude > 20 then
-									tbl4.Steal.TweenTo(n, 200, { Owner = "PlaceEgg" })
+									modules.Steal.TweenTo(n, 200, { Owner = "PlaceEgg" })
 									task.wait(0.05)
 								end
 
-								tbl4.Steal.TweenTo(n2, 200, { Owner = "PlaceEgg" })
+								modules.Steal.TweenTo(n2, 200, { Owner = "PlaceEgg" })
 								task.wait(0.1)
 								local character4 = localPlayer.Character
 								humanoidRootPart2 = character4 and character4:FindFirstChild("HumanoidRootPart")
@@ -7226,56 +7138,56 @@ local function fn2()
 
 				_G.LastAction = "PlaceEgg: Move to Pen"
 
-				if not fn16() then
-					tbl5.Busy = false
-					tbl4.FarmState.IsPlacing = false
-					tbl4.Movement.Release("PlaceEgg")
+				if not moveToPetArea() then
+					placeEggManager.Busy = false
+					modules.FarmState.IsPlacing = false
+					modules.Movement.Release("PlaceEgg")
 					return
 				end
 
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					_G.LastAction = "PlaceEgg: Unstick from Treadmill"
 
-					if tbl4.Treadmill.Unequip then
-						tbl4.Treadmill.Unequip()
+					if modules.Treadmill.Unequip then
+						modules.Treadmill.Unequip()
 					end
 
 					task.wait(0.05)
 				end
 
-				local v8 = tbl5.GetPlacedWorldPositions(getPlotData.CenterPoint)
+				local v8 = placeEggManager.GetPlacedWorldPositions(getPlotData.CenterPoint)
 				local placedCount = v7.placedCount
 
 				for _, unplacedUid in ipairs(v7.unplacedUids) do
 					if enabled["Auto Place Egg"] then
 						if not (v7.maxPlaced <= placedCount) then
-							if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
+							if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
 								_G.LastAction = "PlaceEgg: Interrupted by Night (Returning SafeZone)"
 								break
 							else
-								local v9, v10 = tbl5.FindNextFreeSlot(getPlotData, v8)
+								local v9, v10 = placeEggManager.FindNextFreeSlot(getPlotData, v8)
 
 								if v9 then
 									local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
 									if not humanoidRootPart2 or (humanoidRootPart2.Position - n2).Magnitude > 18 then
 										_G.LastAction = "PlaceEgg: Lagback Detected! Returning to Pen"
-										if not fn16() then
+										if not moveToPetArea() then
 											continue
 										end
 									end
 
-									if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+									if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 										_G.LastAction = "PlaceEgg: Unstick from Treadmill"
 
-										if tbl4.Treadmill.Unequip then
-											tbl4.Treadmill.Unequip()
+										if modules.Treadmill.Unequip then
+											modules.Treadmill.Unequip()
 										end
 
 										task.wait(0.05)
 									end
 
-									local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+									local eggCmds = modules.Game and modules.Game.EggCmds
 									_G.LastAction = "PlaceEgg: Equip Tool (" .. tostring(unplacedUid) .. ")"
 
 									if eggCmds and eggCmds.RequestEquipTool then
@@ -7303,13 +7215,13 @@ local function fn2()
 									if ok and (result == true or type(result) == "table" and (result.Outcome == true or result.Success == true or result.Placed == true)) then
 										placedCount += 1
 										table.insert(v8, v9)
-										tbl5.FailCounts[unplacedUid] = nil
-										tbl5.FailAt[unplacedUid] = nil
+										placeEggManager.FailCounts[unplacedUid] = nil
+										placeEggManager.FailAt[unplacedUid] = nil
 									else
-										tbl5.FailCounts[unplacedUid] = (tbl5.FailCounts[unplacedUid] or 0) + 1
-										tbl5.FailAt[unplacedUid] = os.clock()
+										placeEggManager.FailCounts[unplacedUid] = (placeEggManager.FailCounts[unplacedUid] or 0) + 1
+										placeEggManager.FailAt[unplacedUid] = os.clock()
 
-										if tbl5.FailCounts[unplacedUid] >= 3 then
+										if placeEggManager.FailCounts[unplacedUid] >= 3 then
 											_G.LastAction = "PlaceEgg: Skip Failed Egg (" .. tostring(unplacedUid) .. ")"
 										end
 									end
@@ -7334,7 +7246,7 @@ local function fn2()
 				end)
 
 				pcall(function()
-					local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+					local eggCmds = modules.Game and modules.Game.EggCmds
 
 					if eggCmds and eggCmds.RequestRuntimeSnapshot then
 						eggCmds.RequestRuntimeSnapshot()
@@ -7345,42 +7257,42 @@ local function fn2()
 
 				if humanoidRootPart2 and n and (humanoidRootPart2.Position - n).Magnitude > 8 then
 					_G.LastAction = "PlaceEgg: Return Center Corridor"
-					tbl4.Steal.TweenTo(n, 120, { Owner = "PlaceEgg" })
+					modules.Steal.TweenTo(n, 120, { Owner = "PlaceEgg" })
 					task.wait(0.05)
 				end
 
 				_G.LastAction = "PlaceEgg: Completed"
-				tbl5.Busy = false
-				tbl4.FarmState.IsPlacing = false
-				tbl5.LastRun = os.clock()
-				tbl5.LastFinishAt = os.clock()
-				tbl5.CachedCapacity = nil
-				tbl4.Movement.Release("PlaceEgg")
+				placeEggManager.Busy = false
+				modules.FarmState.IsPlacing = false
+				placeEggManager.LastRun = os.clock()
+				placeEggManager.LastFinishAt = os.clock()
+				placeEggManager.CachedCapacity = nil
+				modules.Movement.Release("PlaceEgg")
 
-				if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
-					tbl4.Steal.GoToSafeZone(300, "SafeZone")
-				elseif enabled["Auto Treadmill"] and tbl4.Treadmill and tbl4.Treadmill.CanRun and tbl4.Treadmill.CanRun() then
-					tbl4.Treadmill.Step()
+				if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
+					modules.Steal.GoToSafeZone(300, "SafeZone")
+				elseif enabled["Auto Treadmill"] and modules.Treadmill and modules.Treadmill.CanRun and modules.Treadmill.CanRun() then
+					modules.Treadmill.Step()
 				end
 			end
 
-			return tbl5
+			return placeEggManager
 		end
 
-		tbl4.PlaceEgg = fn15()
+		modules.PlaceEgg = createPlaceEggModule()
 
-		local function fn16()
-			local tbl5
+		local function createTreadmillModule()
+			local treadmillManager
 
-			tbl5 = {
+			treadmillManager = {
 				UndergroundOffset = 1000,
 				OriginalPositions = {},
 				OriginalProperties = {},
 				IsHidden = false,
 				CollectInstances = function()
 					local tbl6 = {}
-					local plotCmds = tbl4.Game and tbl4.Game.PlotCmds
-					local getPlot = tbl4.Game and tbl4.Game.GetPlot and tbl4.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
+					local plotCmds = modules.Game and modules.Game.PlotCmds
+					local getPlot = modules.Game and modules.Game.GetPlot and modules.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
 					local plotIndex = getPlot and getPlot.PlotIndex
 					local clientTreadmillRenders = workspace:FindFirstChild("__ClientTreadmillRenders")
 
@@ -7421,25 +7333,25 @@ local function fn2()
 					return tbl6
 				end,
 				Hide = function()
-					local v7 = tbl5.CollectInstances()
+					local v7 = treadmillManager.CollectInstances()
 
 					for _, v8 in ipairs(v7) do
 						if v8 and v8.Parent then
 							if v8:IsA("Model") or v8:IsA("Tool") then
-								if not tbl5.OriginalPositions[v8] then
-									tbl5.OriginalPositions[v8] = v8:GetPivot()
+								if not treadmillManager.OriginalPositions[v8] then
+									treadmillManager.OriginalPositions[v8] = v8:GetPivot()
 								end
 
-								local v9 = tbl5.OriginalPositions[v8]
+								local v9 = treadmillManager.OriginalPositions[v8]
 
 								pcall(function()
-									v8:PivotTo(v9 - Vector3.new(0, tbl5.UndergroundOffset, 0))
+									v8:PivotTo(v9 - Vector3.new(0, treadmillManager.UndergroundOffset, 0))
 								end)
 
 								for _, descendant in ipairs(v8:GetDescendants()) do
 									if descendant:IsA("BasePart") then
-										if not tbl5.OriginalProperties[descendant] then
-											tbl5.OriginalProperties[descendant] = { CanTouch = descendant.CanTouch, CanCollide = descendant.CanCollide }
+										if not treadmillManager.OriginalProperties[descendant] then
+											treadmillManager.OriginalProperties[descendant] = { CanTouch = descendant.CanTouch, CanCollide = descendant.CanCollide }
 										end
 
 										descendant.CanTouch = false
@@ -7447,25 +7359,25 @@ local function fn2()
 									end
 								end
 							elseif v8:IsA("BasePart") then
-								if not tbl5.OriginalPositions[v8] then
-									tbl5.OriginalPositions[v8] = v8.CFrame
+								if not treadmillManager.OriginalPositions[v8] then
+									treadmillManager.OriginalPositions[v8] = v8.CFrame
 								end
 
-								if not tbl5.OriginalProperties[v8] then
-									tbl5.OriginalProperties[v8] = { CanTouch = v8.CanTouch, CanCollide = v8.CanCollide }
+								if not treadmillManager.OriginalProperties[v8] then
+									treadmillManager.OriginalProperties[v8] = { CanTouch = v8.CanTouch, CanCollide = v8.CanCollide }
 								end
 
-								v8.CFrame = tbl5.OriginalPositions[v8] - Vector3.new(0, tbl5.UndergroundOffset, 0)
+								v8.CFrame = treadmillManager.OriginalPositions[v8] - Vector3.new(0, treadmillManager.UndergroundOffset, 0)
 								v8.CanTouch = false
 								v8.CanCollide = false
 							end
 						end
 					end
 
-					tbl5.IsHidden = true
+					treadmillManager.IsHidden = true
 				end,
 				Restore = function()
-					for k, originalPosition in pairs(tbl5.OriginalPositions) do
+					for k, originalPosition in pairs(treadmillManager.OriginalPositions) do
 						if k and k.Parent then
 							pcall(function()
 								if k:IsA("Model") or k:IsA("Tool") then
@@ -7477,21 +7389,21 @@ local function fn2()
 
 							if k:IsA("Model") or k:IsA("Tool") then
 								for _, descendant in ipairs(k:GetDescendants()) do
-									if descendant:IsA("BasePart") and tbl5.OriginalProperties[descendant] then
-										local v7 = tbl5.OriginalProperties[descendant]
+									if descendant:IsA("BasePart") and treadmillManager.OriginalProperties[descendant] then
+										local v7 = treadmillManager.OriginalProperties[descendant]
 										descendant.CanTouch = v7.CanTouch
 										descendant.CanCollide = v7.CanCollide
 									end
 								end
-							elseif k:IsA("BasePart") and tbl5.OriginalProperties[k] then
-								local v7 = tbl5.OriginalProperties[k]
+							elseif k:IsA("BasePart") and treadmillManager.OriginalProperties[k] then
+								local v7 = treadmillManager.OriginalProperties[k]
 								k.CanTouch = v7.CanTouch
 								k.CanCollide = v7.CanCollide
 							end
 						end
 					end
 
-					tbl5.IsHidden = false
+					treadmillManager.IsHidden = false
 				end,
 			}
 
@@ -7558,81 +7470,81 @@ local function fn2()
 				return false
 			end
 
-			tbl5.CheckTreadmil = checkTreadmil
-			tbl5.CheckTreadmill = checkTreadmil
-			tbl5.IsOnTreadmill = checkTreadmil
+			treadmillManager.CheckTreadmil = checkTreadmil
+			treadmillManager.CheckTreadmill = checkTreadmil
+			treadmillManager.IsOnTreadmill = checkTreadmil
 
-			tbl5.CanRun = function()
+			treadmillManager.CanRun = function()
 				if not enabled["Auto Treadmill"] then
 					return false
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
+				if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
 					return false
 				end
 
 				if enabled["Auto Steal"] then
-					if tbl4.Steal and tbl4.Steal.IsActiveStealing and tbl4.Steal.IsActiveStealing() then
+					if modules.Steal and modules.Steal.IsActiveStealing and modules.Steal.IsActiveStealing() then
 						return false
 					end
 
-					if tbl4.Steal and (tbl4.Steal.IsStealing or tbl4.FarmState and (tbl4.FarmState.Carrying or tbl4.FarmState.OptimisticCarry)) then
+					if modules.Steal and (modules.Steal.IsStealing or modules.FarmState and (modules.FarmState.Carrying or modules.FarmState.OptimisticCarry)) then
 						return false
 					end
-					local steal = tbl4.Steal
+					local steal = modules.Steal
 
 					if steal then
-						steal = os.clock() < (tbl4.Steal.PostResetBurstUntil or 0)
+						steal = os.clock() < (modules.Steal.PostResetBurstUntil or 0)
 					end
 
 					if steal then
 						return false
 					end
 
-					if tbl4.Steal and tbl4.Steal.PickTarget and tbl4.Steal.PickTarget() ~= nil then
+					if modules.Steal and modules.Steal.PickTarget and modules.Steal.PickTarget() ~= nil then
 						return false
 					end
 
-					if tbl4.Steal and tbl4.Steal.HasRecentWork and tbl4.Steal.HasRecentWork() then
+					if modules.Steal and modules.Steal.HasRecentWork and modules.Steal.HasRecentWork() then
 						return false
 					end
 				end
 
-				if tbl4.FarmState and tbl4.FarmState.IsPlacing or tbl4.PlaceEgg and tbl4.PlaceEgg.Busy then
+				if modules.FarmState and modules.FarmState.IsPlacing or modules.PlaceEgg and modules.PlaceEgg.Busy then
 					return false
 				end
 
-				if enabled["Auto Place Egg"] and tbl4.PlaceEgg and tbl4.PlaceEgg.ShouldRunNow then
-					if tbl4.PlaceEgg.ShouldRunNow() then
+				if enabled["Auto Place Egg"] and modules.PlaceEgg and modules.PlaceEgg.ShouldRunNow then
+					if modules.PlaceEgg.ShouldRunNow() then
 						return false
 					end
 				end
 
-				if tbl4.Sell then
-					if tbl4.Sell.IsSelling then
+				if modules.Sell then
+					if modules.Sell.IsSelling then
 						return false
 					end
 
-					if enabled["Auto Sell Pet"] and tbl4.Sell.CollectPetUids then
-						if #tbl4.Sell.CollectPetUids() > 0 then
+					if enabled["Auto Sell Pet"] and modules.Sell.CollectPetUids then
+						if #modules.Sell.CollectPetUids() > 0 then
 							return false
 						end
 					end
 
-					if enabled["Auto Sell Egg"] and tbl4.Sell.CollectEggUids then
-						if #tbl4.Sell.CollectEggUids() > 0 then
+					if enabled["Auto Sell Egg"] and modules.Sell.CollectEggUids then
+						if #modules.Sell.CollectEggUids() > 0 then
 							return false
 						end
 					end
 				end
 
-				if not tbl4.Movement.CanClaim("Treadmill", 40) then
+				if not modules.Movement.CanClaim("Treadmill", 40) then
 					return false
 				end
 				return true
 			end
 
-			tbl5.Unequip = function()
+			treadmillManager.Unequip = function()
 				if not checkTreadmil() then
 					return true
 				end
@@ -7665,15 +7577,15 @@ local function fn2()
 				return not checkTreadmil()
 			end
 
-			tbl5.ExitTreadmill = tbl5.Unequip
+			treadmillManager.ExitTreadmill = treadmillManager.Unequip
 
-			tbl5.ExitToSafeZone = function()
-				tbl4.Movement.Release("Treadmill")
+			treadmillManager.ExitToSafeZone = function()
+				modules.Movement.Release("Treadmill")
 				local character2 = localPlayer.Character
 				local humanoidRootPart2 = character2 and character2:FindFirstChild("HumanoidRootPart")
 				local humanoid2 = character2 and character2:FindFirstChildOfClass("Humanoid")
-				local plotCmds = tbl4.Game and tbl4.Game.PlotCmds
-				local getPlot = tbl4.Game and tbl4.Game.GetPlot and tbl4.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
+				local plotCmds = modules.Game and modules.Game.PlotCmds
+				local getPlot = modules.Game and modules.Game.GetPlot and modules.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
 				local treadmillBottom = getPlot and getPlot.PlotFolder and getPlot.PlotFolder:FindFirstChild("TreadmillBottom")
 				treadmillBottom = treadmillBottom and treadmillBottom.Position
 				local flag = humanoidRootPart2 and treadmillBottom and (humanoidRootPart2.Position - treadmillBottom).Magnitude < 15
@@ -7681,7 +7593,7 @@ local function fn2()
 					return
 				end
 				_G.LastAction = "Treadmill: Exit to SafeZone"
-				tbl5.Unequip()
+				treadmillManager.Unequip()
 				local character3 = localPlayer.Character
 				character3 = character3 and character3:FindFirstChild("HumanoidRootPart")
 
@@ -7697,17 +7609,17 @@ local function fn2()
 					end)
 				end
 
-				if tbl4.Steal and tbl4.Steal.StopRunAnimation and not tbl4.Steal.IsStealing then
-					tbl4.Steal.StopRunAnimation()
+				if modules.Steal and modules.Steal.StopRunAnimation and not modules.Steal.IsStealing then
+					modules.Steal.StopRunAnimation()
 				end
 
 				task.wait(0.05)
 			end
 
 			task.spawn(function()
-				v6(game:GetService("ContextActionService"))
+				cloneRef(game:GetService("ContextActionService"))
 
-				local function fn17(arg)
+				local function bindTreadmillJumpExit(arg)
 					if not arg or arg:GetAttribute("ControllerJumpEnabled") then
 						return
 					end
@@ -7720,7 +7632,7 @@ local function fn2()
 						end
 
 						if checkTreadmil() then
-							tbl5.Unequip()
+							treadmillManager.Unequip()
 						end
 					end)
 
@@ -7734,7 +7646,7 @@ local function fn2()
 						local humanoid2 = character2:FindFirstChildOfClass("Humanoid")
 
 						if humanoid2 then
-							pcall(fn17, humanoid2)
+							pcall(bindTreadmillJumpExit, humanoid2)
 						end
 					end
 				end
@@ -7750,8 +7662,8 @@ local function fn2()
 						if checkTreadmil and checkTreadmil() then
 							flag2 = true
 						else
-							local plotCmds = tbl4.Game and tbl4.Game.PlotCmds
-							local getPlot = tbl4.Game and tbl4.Game.GetPlot and tbl4.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
+							local plotCmds = modules.Game and modules.Game.PlotCmds
+							local getPlot = modules.Game and modules.Game.GetPlot and modules.Game.GetPlot() or plotCmds and plotCmds.GetPlotData and plotCmds.GetPlotData()
 							local treadmillBottom = getPlot and getPlot.PlotFolder and getPlot.PlotFolder:FindFirstChild("TreadmillBottom")
 							local humanoidRootPart2 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
@@ -7762,80 +7674,80 @@ local function fn2()
 					end)
 
 					if flag2 then
-						local startRunAnimation = tbl4.Steal and tbl4.Steal.StartRunAnimation
+						local startRunAnimation = modules.Steal and modules.Steal.StartRunAnimation
 						flag = true
 
 						if startRunAnimation then
-							if not tbl4.Steal.RunAnimConnection then
-								tbl4.Steal.StartRunAnimation(tbl4.Steal.GetWalkSpeed and tbl4.Steal.GetWalkSpeed() or 24)
+							if not modules.Steal.RunAnimConnection then
+								modules.Steal.StartRunAnimation(modules.Steal.GetWalkSpeed and modules.Steal.GetWalkSpeed() or 24)
 							end
 						end
 					elseif flag then
-						local stopRunAnimation = not (tbl4.Steal and tbl4.Steal.IsStealing) and tbl4.Steal and tbl4.Steal.StopRunAnimation
+						local stopRunAnimation = not (modules.Steal and modules.Steal.IsStealing) and modules.Steal and modules.Steal.StopRunAnimation
 						flag = false
 
 						if stopRunAnimation then
-							tbl4.Steal.StopRunAnimation()
+							modules.Steal.StopRunAnimation()
 						end
 					end
 				end
 			end)
 
-			tbl5.Step = function()
+			treadmillManager.Step = function()
 				if not enabled["Auto Treadmill"] then
 					if checkTreadmil() then
-						tbl5.ExitToSafeZone()
+						treadmillManager.ExitToSafeZone()
 					end
 
 					return
 				end
 
-				if not tbl5.CanRun() then
+				if not treadmillManager.CanRun() then
 					if checkTreadmil() then
-						tbl5.ExitToSafeZone()
+						treadmillManager.ExitToSafeZone()
 					end
 
-					if tbl4.Steal and tbl4.Steal.IsNightOrWallClosed and tbl4.Steal.IsNightOrWallClosed() then
-						tbl4.Steal.GoToSafeZone(300, "SafeZone")
+					if modules.Steal and modules.Steal.IsNightOrWallClosed and modules.Steal.IsNightOrWallClosed() then
+						modules.Steal.GoToSafeZone(300, "SafeZone")
 					end
 
 					return
 				end
 
-				if not tbl4.Movement.Claim("Treadmill", 40) then
+				if not modules.Movement.Claim("Treadmill", 40) then
 					return
 				end
-				local getPlot = tbl4.Game and tbl4.Game.GetPlot and tbl4.Game.GetPlot()
+				local getPlot = modules.Game and modules.Game.GetPlot and modules.Game.GetPlot()
 				local plotFolder = getPlot and getPlot.PlotFolder
 				plotFolder = plotFolder and plotFolder:FindFirstChild("TreadmillBottom")
 				if not plotFolder then
-					tbl4.Movement.Release("Treadmill")
+					modules.Movement.Release("Treadmill")
 					return
 				end
 				local character2 = localPlayer.Character
 				character2 = character2 and character2:FindFirstChild("HumanoidRootPart")
 				if not character2 then
-					tbl4.Movement.Release("Treadmill")
+					modules.Movement.Release("Treadmill")
 					return
 				end
 				local n = plotFolder.Position + Vector3.new(0, 2.8, 0)
 				local magnitude = (character2.Position - n).Magnitude
 				if magnitude <= 4.5 or checkTreadmil() then
-					tbl4.Movement.Release("Treadmill")
+					modules.Movement.Release("Treadmill")
 					return
 				end
 
-				if not tbl4.Movement.Claim("Treadmill", 40) then
+				if not modules.Movement.Claim("Treadmill", 40) then
 					return
 				end
 				local n2 = getPlot.CenterPoint and getPlot.CenterPoint.Position + Vector3.new(0, 2.8, 0)
-				local getSafeZone = tbl4.Steal and tbl4.Steal.GetSafeZone and tbl4.Steal.GetSafeZone()
+				local getSafeZone = modules.Steal and modules.Steal.GetSafeZone and modules.Steal.GetSafeZone()
 				local flag = n2 and (character2.Position - n2).Magnitude <= 80
-				local isInSafeZoneArea = tbl4.Steal and tbl4.Steal.IsInSafeZoneArea and tbl4.Steal.IsInSafeZoneArea()
+				local isInSafeZoneArea = modules.Steal and modules.Steal.IsInSafeZoneArea and modules.Steal.IsInSafeZoneArea()
 
 				if not flag and not isInSafeZoneArea and getSafeZone and magnitude > 35 then
 					_G.LastAction = "Treadmill: Return to SafeZone First"
-					tbl4.Steal.TweenTo(getSafeZone, 300, { Owner = "Treadmill" })
+					modules.Steal.TweenTo(getSafeZone, 300, { Owner = "Treadmill" })
 					task.wait(0.05)
 				end
 
@@ -7846,7 +7758,7 @@ local function fn2()
 
 				if n2 and (humanoidRootPart2.Position - n2).Magnitude > 15 and (humanoidRootPart2.Position - n).Magnitude > 12 then
 					_G.LastAction = "Treadmill: Enter Plot Corridor"
-					tbl4.Steal.TweenTo(n2, 120, { Owner = "Treadmill" })
+					modules.Steal.TweenTo(n2, 120, { Owner = "Treadmill" })
 					task.wait(0.05)
 				end
 
@@ -7854,7 +7766,7 @@ local function fn2()
 
 				if humanoidRootPart3 and (humanoidRootPart3.Position - n).Magnitude > 3.5 then
 					_G.LastAction = "Treadmill: Move to Treadmill"
-					tbl4.Steal.TweenTo(n, 120, { Owner = "Treadmill" })
+					modules.Steal.TweenTo(n, 120, { Owner = "Treadmill" })
 				end
 
 				local humanoidRootPart4 = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -7874,26 +7786,26 @@ local function fn2()
 					end
 
 					_G.LastAction = "Treadmill: Running on Treadmill"
-					tbl4.Movement.Release("Treadmill")
+					modules.Movement.Release("Treadmill")
 				end
 			end
 
-			return tbl5
+			return treadmillManager
 		end
 
-		tbl4.Treadmill = fn16()
-		tbl4.MonsterEvents = {}
+		modules.Treadmill = createTreadmillModule()
+		modules.MonsterEvents = {}
 
-		local function fn17()
-			local farmState = tbl4.FarmState
+		local function createHatchModule()
+			local farmState = modules.FarmState
 
 			return { Step = function()
-				if not tbl4.Game.EggCmds then
+				if not modules.Game.EggCmds then
 					return
 				end
 
 				local ok, result = pcall(function()
-					local v7 = tbl4.Game.EggCmds.GetRuntimeSnapshot()
+					local v7 = modules.Game.EggCmds.GetRuntimeSnapshot()
 
 					for _, v8 in ipairs(v7) do
 						if v8.OwnerUserId == localPlayer.UserId then
@@ -7907,14 +7819,14 @@ local function fn2()
 				if not ok or not result then
 					return
 				end
-				local tbl5 = {}
+				local hatchManager = {}
 
 				for k in pairs(result) do
-					tbl5[k] = true
+					hatchManager[k] = true
 				end
 
 				for k in pairs(farmState.HatchedUids) do
-					if not tbl5[k] then
+					if not hatchManager[k] then
 						farmState.HatchedUids[k] = nil
 					end
 				end
@@ -7924,19 +7836,19 @@ local function fn2()
 						local flag = false
 
 						if pcall(function()
-							flag = tbl4.Game.EggCmds.IsLocalEggReady(k)
+							flag = modules.Game.EggCmds.IsLocalEggReady(k)
 						end) and flag then
 							_G.LastAction = "Hatch: Request Hatch Egg (" .. tostring(k) .. ")"
 
 							local ok2, result2 = pcall(function()
-								return tbl4.Game.EggCmds.RequestHatchEgg(k)
+								return modules.Game.EggCmds.RequestHatchEgg(k)
 							end)
 
 							if ok2 and result2 == true then
 								_G.LastAction = "Hatch: Complete Hatch Egg (" .. tostring(k) .. ")"
 
 								local ok3, result3 = pcall(function()
-									return tbl4.Game.EggCmds.RequestCompleteHatchEgg(k)
+									return modules.Game.EggCmds.RequestCompleteHatchEgg(k)
 								end)
 
 								if ok3 and result3 == true then
@@ -7949,24 +7861,24 @@ local function fn2()
 			end }
 		end
 
-		tbl4.Hatch = fn17()
+		modules.Hatch = createHatchModule()
 
-		local function fn18()
-			local tbl5
+		local function createAutoEquipModule()
+			local equipManager
 
-			tbl5 = {
+			equipManager = {
 				LastEquipAt = 0,
 				Execute = function()
-					local lastEquipAt = tbl5.LastEquipAt
+					local lastEquipAt = equipManager.LastEquipAt
 					if os.clock() - lastEquipAt < 5.2 then
 						return false, "cooldown"
 					end
-					tbl5.LastEquipAt = os.clock()
+					equipManager.LastEquipAt = os.clock()
 					_G.LastAction = "Equip: Request Equip Best Pets"
 
 					local ok, result = pcall(function()
-						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Haul and tbl4.Game.Remotes.Haul.WearBest then
-							return tbl4.Game.Remotes.Haul.WearBest:InvokeServer()
+						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Haul and modules.Game.Remotes.Haul.WearBest then
+							return modules.Game.Remotes.Haul.WearBest:InvokeServer()
 						end
 
 						if replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("Backpack: EquipBest") then
@@ -7980,21 +7892,21 @@ local function fn2()
 					if not enabled["Auto Equip Best"] then
 						return
 					end
-					tbl5.Execute()
+					equipManager.Execute()
 				end,
 			}
 
-			return tbl5
+			return equipManager
 		end
 
-		tbl4.Equip = fn18()
+		modules.Equip = createAutoEquipModule()
 
-		local function fn19()
-			local tbl5 = {}
+		local function createFavoriteModule()
+			local favoriteManager = {}
 			local tbl6 = {}
 
 			pcall(function()
-				local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+				local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 				local directory = assets and assets.Directory or assets
 
 				if directory then
@@ -8004,17 +7916,17 @@ local function fn2()
 				end
 			end)
 
-			tbl5.MinRarity = 0
-			tbl5.MutationFilter = "Off"
-			tbl5.LastFavoriteAt = 0
+			favoriteManager.MinRarity = 0
+			favoriteManager.MutationFilter = "Off"
+			favoriteManager.LastFavoriteAt = 0
 
-			local function fn20()
+			local function getFavoriteAssetDirectory()
 				if next(tbl6) then
 					return tbl6
 				end
 
 				pcall(function()
-					local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+					local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 					local directory = assets and assets.Directory
 					local flag
 
@@ -8034,7 +7946,7 @@ local function fn2()
 				return tbl6
 			end
 
-			tbl5.ResolveRarityNumber = function(arg)
+			favoriteManager.ResolveRarityNumber = function(arg)
 				if not arg then
 					return 1
 				end
@@ -8047,7 +7959,7 @@ local function fn2()
 					arg = arg.AssetCategory or arg.Category or arg.Name or arg.DisplayName or arg[1]
 				end
 
-				local v7 = fn20()
+				local v7 = getFavoriteAssetDirectory()
 				v7 = v7 and v7[arg]
 
 				if v7 then
@@ -8070,8 +7982,8 @@ local function fn2()
 					end
 				end
 
-				if tbl4.Steal and tbl4.Steal.GetEggRarityNumber then
-					local ok, result = pcall(tbl4.Steal.GetEggRarityNumber, arg)
+				if modules.Steal and modules.Steal.GetEggRarityNumber then
+					local ok, result = pcall(modules.Steal.GetEggRarityNumber, arg)
 					if ok and type(result) == "number" and result > 0 then
 						return result
 					end
@@ -8080,26 +7992,26 @@ local function fn2()
 				return 1
 			end
 
-			tbl5.CollectUnfavoritedUids = function()
-				local v7 = tbl4.Game.GetSave()
+			favoriteManager.CollectUnfavoritedUids = function()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return {}
 				end
 				local inventory = v7.Inventory or {}
 				local tbl7 = {}
-				local flag = tbl5.MinRarity and tbl5.MinRarity > 0
-				local flag2 = tbl5.MutationFilter and tbl5.MutationFilter ~= "Off" and tbl5.MutationFilter ~= "None"
+				local flag = favoriteManager.MinRarity and favoriteManager.MinRarity > 0
+				local flag2 = favoriteManager.MutationFilter and favoriteManager.MutationFilter ~= "Off" and favoriteManager.MutationFilter ~= "None"
 				if not flag and not flag2 then
 					return {}
 				end
 
 				for k, v8 in pairs(inventory) do
 					local ok, result = pcall(function()
-						return tbl4.Game.AssetItemSerialization.Deserialize(v8)
+						return modules.Game.AssetItemSerialization.Deserialize(v8)
 					end)
 
 					if ok and result and not result.IsFavorite and result.Category then
-						local v9 = tbl5.ResolveRarityNumber(result.Category)
+						local v9 = favoriteManager.ResolveRarityNumber(result.Category)
 						local tbl8 = {}
 						local flag3 = type(result.Mutations) == "table" and #result.Mutations > 0
 						local flag4 = false
@@ -8123,16 +8035,16 @@ local function fn2()
 						local flag5 = true
 
 						if flag then
-							flag5 = v9 >= tbl5.MinRarity
+							flag5 = v9 >= favoriteManager.MinRarity
 						end
 
 						local flag6 = true
 
 						if flag2 then
-							if tbl5.MutationFilter == "All Mutations" then
+							if favoriteManager.MutationFilter == "All Mutations" then
 								flag6 = flag4
 							else
-								flag6 = table.find(tbl8, tbl5.MutationFilter) ~= nil
+								flag6 = table.find(tbl8, favoriteManager.MutationFilter) ~= nil
 							end
 						end
 
@@ -8157,11 +8069,11 @@ local function fn2()
 				return tbl7
 			end
 
-			tbl5.Execute = function()
-				if tbl4.Steal and tbl4.Steal.IsInSafeZone and not tbl4.Steal.IsInSafeZone() then
+			favoriteManager.Execute = function()
+				if modules.Steal and modules.Steal.IsInSafeZone and not modules.Steal.IsInSafeZone() then
 					return false, "not in safezone"
 				end
-				local v7 = tbl5.CollectUnfavoritedUids()
+				local v7 = favoriteManager.CollectUnfavoritedUids()
 				if #v7 == 0 then
 					return false, "no pets to favorite"
 				end
@@ -8171,8 +8083,8 @@ local function fn2()
 					_G.LastAction = "Favorite: Set Favorite Pet (" .. tostring(v8) .. ")"
 
 					pcall(function()
-						if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.PetSatchel and tbl4.Game.Remotes.PetSatchel.WriteFavourite then
-							tbl4.Game.Remotes.PetSatchel.WriteFavourite:FireServer(v8, true)
+						if modules.Game and modules.Game.Remotes and modules.Game.Remotes.PetSatchel and modules.Game.Remotes.PetSatchel.WriteFavourite then
+							modules.Game.Remotes.PetSatchel.WriteFavourite:FireServer(v8, true)
 						elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("AssetInventory: SetFavorite") then
 							replicatedStorage.Network["AssetInventory: SetFavorite"]:FireServer(v8, true)
 						end
@@ -8185,23 +8097,23 @@ local function fn2()
 				return true, n
 			end
 
-			tbl5.Step = function()
+			favoriteManager.Step = function()
 				if not enabled["Auto Favorite Pet"] then
 					return
 				end
-				local lastFavoriteAt = tbl5.LastFavoriteAt
+				local lastFavoriteAt = favoriteManager.LastFavoriteAt
 				if os.clock() - lastFavoriteAt < 3 then
 					return
 				end
-				tbl5.LastFavoriteAt = os.clock()
-				tbl5.Execute()
+				favoriteManager.LastFavoriteAt = os.clock()
+				favoriteManager.Execute()
 			end
 
-			tbl5.LastFavEquippedAt = 0
-			tbl5.LastUnfavEquippedAt = 0
+			favoriteManager.LastFavEquippedAt = 0
+			favoriteManager.LastUnfavEquippedAt = 0
 
-			tbl5.CollectEquippedUids = function()
-				local v7 = tbl4.Game.GetSave()
+			favoriteManager.CollectEquippedUids = function()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return {}
 				end
@@ -8219,8 +8131,8 @@ local function fn2()
 				return tbl8
 			end
 
-			tbl5.SetFavoriteEquipped = function(arg)
-				local v7 = tbl4.Game.GetSave()
+			favoriteManager.SetFavoriteEquipped = function(arg)
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return false, "no data"
 				end
@@ -8238,8 +8150,8 @@ local function fn2()
 							_G.LastAction = (arg and "Favorite" or "Unfavorite") .. ": Equipped Pet (" .. tostring(equippedAsset) .. ")"
 
 							pcall(function()
-								if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.PetSatchel and tbl4.Game.Remotes.PetSatchel.WriteFavourite then
-									tbl4.Game.Remotes.PetSatchel.WriteFavourite:FireServer(equippedAsset, arg)
+								if modules.Game and modules.Game.Remotes and modules.Game.Remotes.PetSatchel and modules.Game.Remotes.PetSatchel.WriteFavourite then
+									modules.Game.Remotes.PetSatchel.WriteFavourite:FireServer(equippedAsset, arg)
 								elseif replicatedStorage:FindFirstChild("Network") and replicatedStorage.Network:FindFirstChild("AssetInventory: SetFavorite") then
 									replicatedStorage.Network["AssetInventory: SetFavorite"]:FireServer(equippedAsset, arg)
 								end
@@ -8254,46 +8166,46 @@ local function fn2()
 				return true, n
 			end
 
-			tbl5.StepFavEquipped = function()
+			favoriteManager.StepFavEquipped = function()
 				if not enabled["Auto Favourite Equiped Pets"] then
 					return
 				end
-				local lastFavEquippedAt = tbl5.LastFavEquippedAt
+				local lastFavEquippedAt = favoriteManager.LastFavEquippedAt
 				if os.clock() - lastFavEquippedAt < 3 then
 					return
 				end
-				tbl5.LastFavEquippedAt = os.clock()
-				tbl5.SetFavoriteEquipped(true)
+				favoriteManager.LastFavEquippedAt = os.clock()
+				favoriteManager.SetFavoriteEquipped(true)
 			end
 
-			tbl5.StepUnfavEquipped = function()
+			favoriteManager.StepUnfavEquipped = function()
 				if not enabled["Auto UnFavourite Equiped Pets"] then
 					return
 				end
-				local lastUnfavEquippedAt = tbl5.LastUnfavEquippedAt
+				local lastUnfavEquippedAt = favoriteManager.LastUnfavEquippedAt
 				if os.clock() - lastUnfavEquippedAt < 3 then
 					return
 				end
-				tbl5.LastUnfavEquippedAt = os.clock()
-				tbl5.SetFavoriteEquipped(false)
+				favoriteManager.LastUnfavEquippedAt = os.clock()
+				favoriteManager.SetFavoriteEquipped(false)
 			end
 
-			return tbl5
+			return favoriteManager
 		end
 
-		tbl4.Favorite = fn19()
+		modules.Favorite = createFavoriteModule()
 
-		local function fn20()
-			local tbl5 = {}
+		local function createSellModule()
+			local sellManager = {}
 			local tbl6 = {}
 
-			local function fn21()
+			local function getSellAssetDirectory()
 				if next(tbl6) then
 					return tbl6
 				end
 
 				pcall(function()
-					local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+					local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 					local directory = assets and assets.Directory or type(assets) == "table" and assets
 
 					if directory and type(directory) == "table" then
@@ -8334,19 +8246,19 @@ local function fn2()
 
 			pcall(function()
 				local ReplicatedStorage = game:GetService("ReplicatedStorage")
-				assetEarnings = tbl4.Game and tbl4.Game.AssetEarnings or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Util") and ReplicatedStorage.Shared.Util:FindFirstChild("AssetEarnings") and require(ReplicatedStorage.Shared.Util.AssetEarnings)
+				assetEarnings = modules.Game and modules.Game.AssetEarnings or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Util") and ReplicatedStorage.Shared.Util:FindFirstChild("AssetEarnings") and require(ReplicatedStorage.Shared.Util.AssetEarnings)
 			end)
 
-			tbl5.PetRule = "Rarity Only"
-			tbl5.MaxRarity = 3
-			tbl5.IncomeThreshold = 0
-			tbl5.BlacklistPets = {}
-			tbl5.EggMaxRarity = 3
-			tbl5.LastSellAt = 0
-			tbl5.LastSellEggAt = 0
-			tbl5.IsSelling = false
+			sellManager.PetRule = "Rarity Only"
+			sellManager.MaxRarity = 3
+			sellManager.IncomeThreshold = 0
+			sellManager.BlacklistPets = {}
+			sellManager.EggMaxRarity = 3
+			sellManager.LastSellAt = 0
+			sellManager.LastSellEggAt = 0
+			sellManager.IsSelling = false
 
-			tbl5.ParseIncome = function(arg)
+			sellManager.ParseIncome = function(arg)
 				if type(arg) == "number" then
 					return arg
 				end
@@ -8405,7 +8317,7 @@ local function fn2()
 				return n
 			end
 
-			tbl5.GetPetIncome = function(arg, arg2)
+			sellManager.GetPetIncome = function(arg, arg2)
 				if not arg or type(arg) ~= "table" then
 					return 0
 				end
@@ -8427,7 +8339,7 @@ local function fn2()
 				end
 
 				local category = arg.Category
-				local v7 = fn21()
+				local v7 = getSellAssetDirectory()
 
 				if category and v7 and v7[category] then
 					local n = tonumber(v7[category].EarningRate) or 0
@@ -8438,8 +8350,8 @@ local function fn2()
 				return tonumber(arg.Income or arg.Rate or arg.BaseIncome or 0) or 0
 			end
 
-			tbl5.GetPetDisplayName = function(arg)
-				local v7 = fn21()
+			sellManager.GetPetDisplayName = function(arg)
+				local v7 = getSellAssetDirectory()
 				if arg and v7 and v7[arg] then
 					local v8 = v7[arg]
 					return v8.DisplayName or v8.Name or arg
@@ -8447,8 +8359,8 @@ local function fn2()
 				return tostring(arg or "Unknown")
 			end
 
-			tbl5.GetPetRarityName = function(arg)
-				local v7 = fn21()
+			sellManager.GetPetRarityName = function(arg)
+				local v7 = getSellAssetDirectory()
 
 				if arg and v7 and v7[arg] then
 					local v8 = v7[arg]
@@ -8467,30 +8379,30 @@ local function fn2()
 				return "Common"
 			end
 
-			tbl5.GetPetFormattedName = function(arg)
+			sellManager.GetPetFormattedName = function(arg)
 				if not arg or not arg.Category then
 					return "Unknown"
 				end
-				local v7 = tbl5.GetPetDisplayName(arg.Category)
-				local v8 = tbl5.GetPetRarityName(arg.Category)
+				local v7 = sellManager.GetPetDisplayName(arg.Category)
+				local v8 = sellManager.GetPetRarityName(arg.Category)
 				return string.format("%s [%s]", v7, v8)
 			end
 
-			tbl5.IsPetBlacklisted = function(arg)
-				if not tbl5.BlacklistPets or next(tbl5.BlacklistPets) == nil then
+			sellManager.IsPetBlacklisted = function(arg)
+				if not sellManager.BlacklistPets or next(sellManager.BlacklistPets) == nil then
 					return false
 				end
 				local category = arg and arg.Category
 				if not category then
 					return false
 				end
-				local v7 = tbl5.GetPetFormattedName(arg)
-				local v8 = tbl5.GetPetDisplayName(category)
+				local v7 = sellManager.GetPetFormattedName(arg)
+				local v8 = sellManager.GetPetDisplayName(category)
 				local v9 = string.lower(tostring(category))
 				local v10 = string.lower(tostring(v7))
 				local v11 = string.lower(tostring(v8))
 
-				for k, blacklistPet in pairs(tbl5.BlacklistPets) do
+				for k, blacklistPet in pairs(sellManager.BlacklistPets) do
 					local v12
 
 					if blacklistPet == true and type(k) == "string" then
@@ -8513,7 +8425,7 @@ local function fn2()
 				return false
 			end
 
-			tbl5.ResolveRarityNumber = function(arg)
+			sellManager.ResolveRarityNumber = function(arg)
 				if not arg then
 					return 1
 				end
@@ -8529,7 +8441,7 @@ local function fn2()
 				if not arg then
 					return 1
 				end
-				local v7 = fn21()
+				local v7 = getSellAssetDirectory()
 				local v8 = v7 and v7[arg]
 
 				if not v8 and v7 then
@@ -8578,8 +8490,8 @@ local function fn2()
 					end
 				end
 
-				if tbl4.Steal and tbl4.Steal.GetEggRarityNumber then
-					local ok, result = pcall(tbl4.Steal.GetEggRarityNumber, arg)
+				if modules.Steal and modules.Steal.GetEggRarityNumber then
+					local ok, result = pcall(modules.Steal.GetEggRarityNumber, arg)
 					if ok and type(result) == "number" and result > 0 then
 						return result
 					end
@@ -8592,8 +8504,8 @@ local function fn2()
 				return 1
 			end
 
-			tbl5.CollectPetUids = function()
-				local v7 = tbl4.Game.GetSave()
+			sellManager.CollectPetUids = function()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return {}
 				end
@@ -8605,7 +8517,7 @@ local function fn2()
 					tbl8[equippedAsset] = true
 				end
 
-				local petRule = tbl5.PetRule or "Rarity Only"
+				local petRule = sellManager.PetRule or "Rarity Only"
 
 				if type(petRule) == "table" then
 					petRule = petRule[1] or petRule.Value or petRule.Title or petRule.Text or "Rarity Only"
@@ -8624,18 +8536,18 @@ local function fn2()
 
 								if AssetItems and AssetItems.Decode then
 									v9 = AssetItems.Decode(v8)
-								elseif tbl4.Game and tbl4.Game.AssetItemSerialization and tbl4.Game.AssetItemSerialization.Deserialize then
-									v9 = tbl4.Game.AssetItemSerialization.Deserialize(v8)
+								elseif modules.Game and modules.Game.AssetItemSerialization and modules.Game.AssetItemSerialization.Deserialize then
+									v9 = modules.Game.AssetItemSerialization.Deserialize(v8)
 								end
 							end)
 						end
 
 						if type(v9) == "table" and v9.Category then
-							if not (v9.IsFavorite == true or v9.Favorite == true or v9.Locked == true) and not v9.InFuse and not tbl5.IsPetBlacklisted(v9) then
-								local v10 = tbl5.ResolveRarityNumber(v9.Category)
-								local v11 = tbl5.GetPetIncome(v9, v7)
-								local flag = tbl5.MaxRarity and tbl5.MaxRarity > 0 and v10 <= tbl5.MaxRarity or false
-								local flag2 = tbl5.IncomeThreshold and tbl5.IncomeThreshold > 0 and v11 < tbl5.IncomeThreshold or false
+							if not (v9.IsFavorite == true or v9.Favorite == true or v9.Locked == true) and not v9.InFuse and not sellManager.IsPetBlacklisted(v9) then
+								local v10 = sellManager.ResolveRarityNumber(v9.Category)
+								local v11 = sellManager.GetPetIncome(v9, v7)
+								local flag = sellManager.MaxRarity and sellManager.MaxRarity > 0 and v10 <= sellManager.MaxRarity or false
+								local flag2 = sellManager.IncomeThreshold and sellManager.IncomeThreshold > 0 and v11 < sellManager.IncomeThreshold or false
 								local str = tostring(petRule):lower()
 
 								if str:find("both") then
@@ -8657,8 +8569,8 @@ local function fn2()
 				return tbl9
 			end
 
-			tbl5.CollectEggUids = function()
-				local v7 = tbl4.Game.GetSave()
+			sellManager.CollectEggUids = function()
+				local v7 = modules.Game.GetSave()
 				local tbl8 = {}
 				if not v7 then
 					return tbl8
@@ -8693,9 +8605,9 @@ local function fn2()
 							local assetCategory = v9.AssetCategory or v9.Category
 
 							if assetCategory then
-								local v10 = tbl5.ResolveRarityNumber(assetCategory)
+								local v10 = sellManager.ResolveRarityNumber(assetCategory)
 
-								if tbl5.EggMaxRarity and tbl5.EggMaxRarity > 0 and v10 <= tbl5.EggMaxRarity then
+								if sellManager.EggMaxRarity and sellManager.EggMaxRarity > 0 and v10 <= sellManager.EggMaxRarity then
 									if not (v9.Mutations and type(v9.Mutations) == "table" and next(v9.Mutations) ~= nil) and not (v9.IsFavorite == true or v9.Favorite == true or v9.Locked == true) then
 										table.insert(tbl8, k)
 									end
@@ -8706,7 +8618,7 @@ local function fn2()
 				end
 
 				if #tbl8 == 0 then
-					local eggCmds = tbl4.Game and tbl4.Game.EggCmds
+					local eggCmds = modules.Game and modules.Game.EggCmds
 					local getRuntimeSnapshot = eggCmds and eggCmds.GetRuntimeSnapshot and eggCmds.GetRuntimeSnapshot()
 
 					if type(getRuntimeSnapshot) == "table" then
@@ -8717,9 +8629,9 @@ local function fn2()
 
 								for k, record in v9(records) do
 									if record.Placement == nil and (record.AssetCategory or record.Category) then
-										local v10 = tbl5.ResolveRarityNumber(record.AssetCategory or record.Category)
+										local v10 = sellManager.ResolveRarityNumber(record.AssetCategory or record.Category)
 
-										if tbl5.EggMaxRarity and tbl5.EggMaxRarity > 0 and v10 <= tbl5.EggMaxRarity then
+										if sellManager.EggMaxRarity and sellManager.EggMaxRarity > 0 and v10 <= sellManager.EggMaxRarity then
 											if not (record.Mutations and type(record.Mutations) == "table" and next(record.Mutations) ~= nil) and not (record.IsFavorite == true or record.Favorite == true or record.Locked == true) then
 												table.insert(tbl8, k)
 											end
@@ -8734,24 +8646,24 @@ local function fn2()
 				return tbl8
 			end
 
-			tbl5.CanSell = function()
-				if tbl4.FarmState and (tbl4.FarmState.Carrying or tbl4.FarmState.OptimisticCarry) then
+			sellManager.CanSell = function()
+				if modules.FarmState and (modules.FarmState.Carrying or modules.FarmState.OptimisticCarry) then
 					return false
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsActiveStealing and tbl4.Steal.IsActiveStealing() then
+				if modules.Steal and modules.Steal.IsActiveStealing and modules.Steal.IsActiveStealing() then
 					return false
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsStealing then
+				if modules.Steal and modules.Steal.IsStealing then
 					return false
 				end
 				local flag = false
 
-				if tbl4.Steal and tbl4.Steal.IsInSafeZoneArea then
-					flag = tbl4.Steal.IsInSafeZoneArea()
-				elseif tbl4.Steal and tbl4.Steal.IsInSafeZone then
-					flag = tbl4.Steal.IsInSafeZone()
+				if modules.Steal and modules.Steal.IsInSafeZoneArea then
+					flag = modules.Steal.IsInSafeZoneArea()
+				elseif modules.Steal and modules.Steal.IsInSafeZone then
+					flag = modules.Steal.IsInSafeZone()
 				end
 
 				if not flag then
@@ -8767,7 +8679,7 @@ local function fn2()
 				return flag == true
 			end
 
-			tbl5.FireBatchSell = function(arg, arg2)
+			sellManager.FireBatchSell = function(arg, arg2)
 				arg = arg or {}
 				arg2 = arg2 or {}
 				if #arg == 0 and #arg2 == 0 then
@@ -8777,7 +8689,7 @@ local function fn2()
 
 				pcall(function()
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+					local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 					if remotes and remotes.PetSatchel and remotes.PetSatchel.SellSelection then
 						remotes.PetSatchel.SellSelection:FireServer({ Assets = arg, Eggs = arg2 })
@@ -8798,7 +8710,7 @@ local function fn2()
 				if not flag and #arg > 0 then
 					pcall(function()
 						local ReplicatedStorage = game:GetService("ReplicatedStorage")
-						local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+						local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 						if remotes and remotes.PetSatchel and remotes.PetSatchel.SellEveryPet then
 							remotes.PetSatchel.SellEveryPet:FireServer(arg)
@@ -8810,16 +8722,16 @@ local function fn2()
 				return flag
 			end
 
-			tbl5.ExecutePet = function()
-				if not tbl5.CanSell() then
+			sellManager.ExecutePet = function()
+				if not sellManager.CanSell() then
 					return false, "not in safezone"
 				end
-				local v7 = tbl5.CollectPetUids()
+				local v7 = sellManager.CollectPetUids()
 				if #v7 == 0 then
 					return false, "no sellable pets"
 				end
-				local debugInspector = tbl4.DebugInspector
-				tbl5.IsSelling = true
+				local debugInspector = modules.DebugInspector
+				sellManager.IsSelling = true
 				_G.LastAction = string.format("Sell: Selling Batch of %d Pets...", #v7)
 
 				if debugInspector then
@@ -8829,19 +8741,19 @@ local function fn2()
 				local n = 0
 
 				for i = 1, #v7, 50 do
-					if tbl5.CanSell() then
+					if sellManager.CanSell() then
 						local tbl8 = {}
 
 						for i2 = i, math.min(i + 50 - 1, #v7) do
 							table.insert(tbl8, v7[i2])
 						end
 
-						if tbl5.FireBatchSell(tbl8, {}) then
+						if sellManager.FireBatchSell(tbl8, {}) then
 							n += #tbl8
 						else
 							pcall(function()
 								local ReplicatedStorage = game:GetService("ReplicatedStorage")
-								local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+								local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 								if remotes and remotes.PetSatchel and remotes.PetSatchel.SellPet then
 									for _, v8 in ipairs(tbl8) do
@@ -8864,22 +8776,22 @@ local function fn2()
 					break
 				end
 
-				tbl5.LastSellAt = os.clock()
-				tbl5.IsSelling = false
+				sellManager.LastSellAt = os.clock()
+				sellManager.IsSelling = false
 				_G.LastAction = string.format("Sell: Finished selling %d Pets!", n)
 				return true, n
 			end
 
-			tbl5.ExecuteEgg = function()
-				if not tbl5.CanSell() then
+			sellManager.ExecuteEgg = function()
+				if not sellManager.CanSell() then
 					return false, "not in safezone"
 				end
-				local v7 = tbl5.CollectEggUids()
+				local v7 = sellManager.CollectEggUids()
 				if #v7 == 0 then
 					return false, "no sellable eggs"
 				end
-				local debugInspector = tbl4.DebugInspector
-				tbl5.IsSelling = true
+				local debugInspector = modules.DebugInspector
+				sellManager.IsSelling = true
 				_G.LastAction = string.format("Sell: Selling Batch of %d Eggs...", #v7)
 
 				if debugInspector then
@@ -8889,14 +8801,14 @@ local function fn2()
 				local n = 0
 
 				for i = 1, #v7, 50 do
-					if tbl5.CanSell() then
+					if sellManager.CanSell() then
 						local tbl8 = {}
 
 						for i2 = i, math.min(i + 50 - 1, #v7) do
 							table.insert(tbl8, v7[i2])
 						end
 
-						if tbl5.FireBatchSell({}, tbl8) then
+						if sellManager.FireBatchSell({}, tbl8) then
 							n += #tbl8
 						end
 
@@ -8910,28 +8822,28 @@ local function fn2()
 					break
 				end
 
-				tbl5.LastSellEggAt = os.clock()
-				tbl5.IsSelling = false
+				sellManager.LastSellEggAt = os.clock()
+				sellManager.IsSelling = false
 				_G.LastAction = string.format("Sell: Finished selling %d Eggs!", n)
 				return true, n
 			end
 
-			tbl5.Step = function()
-				if not tbl5.CanSell() then
+			sellManager.Step = function()
+				if not sellManager.CanSell() then
 					return
 				end
 				local now = os.clock()
-				if tbl5.LastStepAt and now - tbl5.LastStepAt < 2.5 then
+				if sellManager.LastStepAt and now - sellManager.LastStepAt < 2.5 then
 					return
 				end
-				tbl5.LastStepAt = now
-				local autoSellPet = enabled["Auto Sell Pet"] and tbl5.CollectPetUids() or {}
-				local autoSellEgg = enabled["Auto Sell Egg"] and tbl5.CollectEggUids() or {}
+				sellManager.LastStepAt = now
+				local autoSellPet = enabled["Auto Sell Pet"] and sellManager.CollectPetUids() or {}
+				local autoSellEgg = enabled["Auto Sell Egg"] and sellManager.CollectEggUids() or {}
 				if #autoSellPet == 0 and #autoSellEgg == 0 then
 					return
 				end
-				tbl5.IsSelling = true
-				local debugInspector = tbl4.DebugInspector
+				sellManager.IsSelling = true
+				local debugInspector = modules.DebugInspector
 
 				if debugInspector then
 					debugInspector.SetState("SELLING", string.format("Selling %d Pets & %d Eggs", #autoSellPet, #autoSellEgg), "SafeZone")
@@ -8940,7 +8852,7 @@ local function fn2()
 				local n = math.max(#autoSellPet, #autoSellEgg)
 
 				for i = 1, n, 50 do
-					if tbl5.CanSell() then
+					if sellManager.CanSell() then
 						local tbl8 = {}
 
 						for i2 = i, math.min(i + 50 - 1, #autoSellPet) do
@@ -8954,7 +8866,7 @@ local function fn2()
 						end
 
 						if #tbl8 > 0 or #tbl9 > 0 then
-							tbl5.FireBatchSell(tbl8, tbl9)
+							sellManager.FireBatchSell(tbl8, tbl9)
 						end
 
 						if i + 50 <= n then
@@ -8967,46 +8879,46 @@ local function fn2()
 					break
 				end
 
-				tbl5.LastSellAt = now
-				tbl5.LastSellEggAt = now
-				tbl5.IsSelling = false
+				sellManager.LastSellAt = now
+				sellManager.LastSellEggAt = now
+				sellManager.IsSelling = false
 				_G.LastAction = string.format("Sell: Successfully sold %d Pets & %d Eggs!", #autoSellPet, #autoSellEgg)
 			end
 
-			return tbl5
+			return sellManager
 		end
 
-		tbl4.Sell = fn20()
+		modules.Sell = createSellModule()
 
-		local function fn21()
-			local function fn22()
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+		local function createRebirthModule()
+			local function canRunRebirth()
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					return true
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsInSafeZoneArea and tbl4.Steal.IsInSafeZoneArea() then
+				if modules.Steal and modules.Steal.IsInSafeZoneArea and modules.Steal.IsInSafeZoneArea() then
 					return true
 				end
 
-				if tbl4.Steal and not tbl4.Steal.IsStealing then
+				if modules.Steal and not modules.Steal.IsStealing then
 					return true
 				end
 				return false
 			end
 
-			local tbl5
+			local rebirthManager
 
-			tbl5 = {
+			rebirthManager = {
 				LastAt = 0,
 				CanRebirth = function()
-					if not fn22() then
+					if not canRunRebirth() then
 						return false
 					end
-					local v7 = tbl4.Game.GetSave()
+					local v7 = modules.Game.GetSave()
 					if not v7 then
 						return false
 					end
-					local v8 = tbl4.Game.RebirthUtil.RebirthToRequiredSpeedPower((v7.Rebirth or 0) + 1)
+					local v8 = modules.Game.RebirthUtil.RebirthToRequiredSpeedPower((v7.Rebirth or 0) + 1)
 					if v8 == math.huge then
 						return false
 					end
@@ -9032,15 +8944,15 @@ local function fn2()
 					local rebirth3 = content:FindFirstChild("Rebirth")
 
 					if rebirth3 and rebirth3:IsA("ImageButton") and rebirth3.Visible then
-						if fn6 then
+						if fireSignal then
 							_G.LastAction = "Rebirth: Click Rebirth Button"
 
 							local ok = pcall(function()
-								fn6(rebirth3.Activated)
+								fireSignal(rebirth3.Activated)
 							end)
 
 							local ok2 = pcall(function()
-								fn6(rebirth3.MouseButton1Click)
+								fireSignal(rebirth3.MouseButton1Click)
 							end)
 
 							if ok or ok2 then
@@ -9054,54 +8966,54 @@ local function fn2()
 					return false
 				end,
 				Step = function()
-					if not fn22() then
+					if not canRunRebirth() then
 						return
 					end
-					local lastAt = tbl5.LastAt
+					local lastAt = rebirthManager.LastAt
 					if os.clock() - lastAt < 8 then
 						return
 					end
-					tbl5.LastAt = os.clock()
+					rebirthManager.LastAt = os.clock()
 
-					if tbl5.CanRebirth() then
-						tbl5.ClickUI()
+					if rebirthManager.CanRebirth() then
+						rebirthManager.ClickUI()
 					end
 				end,
 			}
 
-			return tbl5
+			return rebirthManager
 		end
 
-		tbl4.Rebirth = fn21()
+		modules.Rebirth = createRebirthModule()
 
-		local function fn22()
-			local tbl5 = { LastAt = 0, LastTreadmillAt = 0 }
+		local function createUpgradeModule()
+			local upgradeManager = { LastAt = 0, LastTreadmillAt = 0 }
 
-			local function fn23()
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+			local function canRunUpgrade()
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					return true
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsInSafeZoneArea and tbl4.Steal.IsInSafeZoneArea() then
+				if modules.Steal and modules.Steal.IsInSafeZoneArea and modules.Steal.IsInSafeZoneArea() then
 					return true
 				end
 
-				if tbl4.Steal and not tbl4.Steal.IsStealing then
+				if modules.Steal and not modules.Steal.IsStealing then
 					return true
 				end
 				return false
 			end
 
-			tbl5.Step = function()
-				if not fn23() then
+			upgradeManager.Step = function()
+				if not canRunUpgrade() then
 					return
 				end
-				local lastAt = tbl5.LastAt
+				local lastAt = upgradeManager.LastAt
 				if os.clock() - lastAt < 3 then
 					return
 				end
-				tbl5.LastAt = os.clock()
-				local v7 = tbl4.Game.GetSave()
+				upgradeManager.LastAt = os.clock()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return
 				end
@@ -9124,9 +9036,9 @@ local function fn2()
 								if Remotes and Remotes.Homestead and Remotes.Homestead.AskBaseTierRaise then
 									_G.LastAction = "Upgrade: Base Tier " .. tostring(n)
 									Remotes.Homestead.AskBaseTierRaise:FireServer()
-								elseif tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Homestead and tbl4.Game.Remotes.Homestead.AskBaseTierRaise then
+								elseif modules.Game and modules.Game.Remotes and modules.Game.Remotes.Homestead and modules.Game.Remotes.Homestead.AskBaseTierRaise then
 									_G.LastAction = "Upgrade: Base Tier " .. tostring(n)
-									tbl4.Game.Remotes.Homestead.AskBaseTierRaise:FireServer()
+									modules.Game.Remotes.Homestead.AskBaseTierRaise:FireServer()
 								end
 							end)
 						end
@@ -9134,23 +9046,23 @@ local function fn2()
 				end
 			end
 
-			tbl5.StepTreadmill = function()
-				if not fn23() then
+			upgradeManager.StepTreadmill = function()
+				if not canRunUpgrade() then
 					return
 				end
-				local lastTreadmillAt = tbl5.LastTreadmillAt
+				local lastTreadmillAt = upgradeManager.LastTreadmillAt
 				if os.clock() - lastTreadmillAt < 3 then
 					return
 				end
-				tbl5.LastTreadmillAt = os.clock()
-				local v7 = tbl4.Game.GetSave()
+				upgradeManager.LastTreadmillAt = os.clock()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return
 				end
 
 				if enabled["Auto Upgrade Treadmill"] then
 					local ReplicatedStorage = game:GetService("ReplicatedStorage")
-					local treadmills = tbl4.Game and tbl4.Game.Treadmills or ReplicatedStorage:FindFirstChild("Data") and ReplicatedStorage.Data:FindFirstChild("Treadmills") and require(ReplicatedStorage.Data.Treadmills)
+					local treadmills = modules.Game and modules.Game.Treadmills or ReplicatedStorage:FindFirstChild("Data") and ReplicatedStorage.Data:FindFirstChild("Treadmills") and require(ReplicatedStorage.Data.Treadmills)
 
 					if treadmills and treadmills.GetByUpgradeLevel then
 						local v8 = treadmills.GetByUpgradeLevel((v7.TreadmillUpgradeLevel or 0) + 1)
@@ -9167,9 +9079,9 @@ local function fn2()
 								if Remotes and Remotes.Treadmill and Remotes.Treadmill.AskTierRaise then
 									_G.LastAction = "Upgrade: Buy " .. tostring(v8.DisplayName or v8._id)
 									Remotes.Treadmill.AskTierRaise:InvokeServer(v8._id)
-								elseif tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Treadmill and tbl4.Game.Remotes.Treadmill.AskTierRaise then
+								elseif modules.Game and modules.Game.Remotes and modules.Game.Remotes.Treadmill and modules.Game.Remotes.Treadmill.AskTierRaise then
 									_G.LastAction = "Upgrade: Buy " .. tostring(v8.DisplayName or v8._id)
-									tbl4.Game.Remotes.Treadmill.AskTierRaise:InvokeServer(v8._id)
+									modules.Game.Remotes.Treadmill.AskTierRaise:InvokeServer(v8._id)
 								end
 							end)
 						end
@@ -9177,47 +9089,47 @@ local function fn2()
 				end
 			end
 
-			return tbl5
+			return upgradeManager
 		end
 
-		tbl4.Upgrade = fn22()
+		modules.Upgrade = createUpgradeModule()
 
-		local function fn23()
-			local tbl5 = { LastAt = 0 }
+		local function createClaimModule()
+			local claimManager = { LastAt = 0 }
 
-			local function fn24()
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+			local function canRunClaim()
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					return true
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsInSafeZoneArea and tbl4.Steal.IsInSafeZoneArea() then
+				if modules.Steal and modules.Steal.IsInSafeZoneArea and modules.Steal.IsInSafeZoneArea() then
 					return true
 				end
 
-				if tbl4.Steal and not tbl4.Steal.IsStealing then
+				if modules.Steal and not modules.Steal.IsStealing then
 					return true
 				end
 				return false
 			end
 
-			tbl5.Step = function()
-				if not fn24() then
+			claimManager.Step = function()
+				if not canRunClaim() then
 					return
 				end
-				local lastAt = tbl5.LastAt
+				local lastAt = claimManager.LastAt
 				if os.clock() - lastAt < 20 then
 					return
 				end
-				tbl5.LastAt = os.clock()
+				claimManager.LastAt = os.clock()
 
 				if enabled["Auto Claim"] then
 					pcall(function()
 						if Remotes and Remotes.AwayEarnings and Remotes.AwayEarnings.AskCollect then
 							_G.LastAction = "Claim: Redeem Offline Assets"
 							Remotes.AwayEarnings.AskCollect:InvokeServer()
-						elseif tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.AwayEarnings and tbl4.Game.Remotes.AwayEarnings.AskCollect then
+						elseif modules.Game and modules.Game.Remotes and modules.Game.Remotes.AwayEarnings and modules.Game.Remotes.AwayEarnings.AskCollect then
 							_G.LastAction = "Claim: Redeem Offline Assets"
-							tbl4.Game.Remotes.AwayEarnings.AskCollect:InvokeServer()
+							modules.Game.Remotes.AwayEarnings.AskCollect:InvokeServer()
 						end
 					end)
 
@@ -9225,32 +9137,32 @@ local function fn2()
 						if Remotes and Remotes.Codex and Remotes.Codex.AskRedeemAll then
 							_G.LastAction = "Claim: Request Claim All Index"
 							Remotes.Codex.AskRedeemAll:InvokeServer()
-						elseif tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Codex and tbl4.Game.Remotes.Codex.AskRedeemAll then
+						elseif modules.Game and modules.Game.Remotes and modules.Game.Remotes.Codex and modules.Game.Remotes.Codex.AskRedeemAll then
 							_G.LastAction = "Claim: Request Claim All Index"
-							tbl4.Game.Remotes.Codex.AskRedeemAll:InvokeServer()
+							modules.Game.Remotes.Codex.AskRedeemAll:InvokeServer()
 						end
 					end)
 				end
 			end
 
-			return tbl5
+			return claimManager
 		end
 
-		tbl4.Claim = fn23()
+		modules.Claim = createClaimModule()
 
-		local function fn24()
-			local tbl5 = { LastAt = 0 }
+		local function createTrailModule()
+			local trailManager = { LastAt = 0 }
 
-			local function fn25()
-				if tbl4.Treadmill and tbl4.Treadmill.CheckTreadmil and tbl4.Treadmill.CheckTreadmil() then
+			local function canRunTrail()
+				if modules.Treadmill and modules.Treadmill.CheckTreadmil and modules.Treadmill.CheckTreadmil() then
 					return true
 				end
 
-				if tbl4.Steal and tbl4.Steal.IsInSafeZoneArea and tbl4.Steal.IsInSafeZoneArea() then
+				if modules.Steal and modules.Steal.IsInSafeZoneArea and modules.Steal.IsInSafeZoneArea() then
 					return true
 				end
 
-				if tbl4.Steal and not tbl4.Steal.IsStealing then
+				if modules.Steal and not modules.Steal.IsStealing then
 					return true
 				end
 				return false
@@ -9259,11 +9171,11 @@ local function fn2()
 			local tbl6 = {}
 
 			pcall(function()
-				local trails = tbl4.Game and tbl4.Game.Trails or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Trails)
+				local trails = modules.Game and modules.Game.Trails or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Trails)
 				tbl6 = trails and trails.Directory or trails or {}
 			end)
 
-			tbl5.GetAvailableTrails = function()
+			trailManager.GetAvailableTrails = function()
 				local tbl7 = {}
 
 				for k, v7 in pairs(tbl6) do
@@ -9285,15 +9197,15 @@ local function fn2()
 				return tbl7
 			end
 
-			tbl5.BuyAvailableTrails = function()
-				local v7 = tbl4.Game.GetSave()
+			trailManager.BuyAvailableTrails = function()
+				local v7 = modules.Game.GetSave()
 				if not v7 then
 					return
 				end
 				local trailInventory = v7.TrailInventory or {}
 				local speedPower = v7.SpeedPower or 0
 				local money = v7.Money or 0
-				local v8 = tbl5.GetAvailableTrails()
+				local v8 = trailManager.GetAvailableTrails()
 
 				for _, v9 in ipairs(v8) do
 					local flag = false
@@ -9333,8 +9245,8 @@ local function fn2()
 				end
 			end
 
-			tbl5.Step = function()
-				if not fn25() then
+			trailManager.Step = function()
+				if not canRunTrail() then
 					return
 				end
 
@@ -9342,23 +9254,23 @@ local function fn2()
 					return
 				end
 
-				if os.clock() - (tbl5.LastAt or 0) < 5 then
+				if os.clock() - (trailManager.LastAt or 0) < 5 then
 					return
 				end
-				tbl5.LastAt = os.clock()
-				tbl5.BuyAvailableTrails()
+				trailManager.LastAt = os.clock()
+				trailManager.BuyAvailableTrails()
 			end
 
-			return tbl5
+			return trailManager
 		end
 
-		tbl4.Trail = fn24()
+		modules.Trail = createTrailModule()
 
-		local function fn25()
-			local farmState = tbl4.FarmState
-			local tbl5
+		local function createESPModule()
+			local farmState = modules.FarmState
+			local espManager
 
-			tbl5 = {
+			espManager = {
 				Folder = nil,
 				Markers = {},
 				GuardMarkers = {},
@@ -9366,13 +9278,13 @@ local function fn2()
 				LastUpdate = 0,
 				GuardWarningAt = 0,
 				EnsureFolder = function()
-					if tbl5.Folder and tbl5.Folder.Parent then
-						return tbl5.Folder
+					if espManager.Folder and espManager.Folder.Parent then
+						return espManager.Folder
 					end
-					tbl5.Folder = Instance.new("Folder")
-					tbl5.Folder.Name = "SHX_ESP"
-					tbl5.Folder.Parent = workspace
-					return tbl5.Folder
+					espManager.Folder = Instance.new("Folder")
+					espManager.Folder.Name = "SHX_ESP"
+					espManager.Folder.Parent = workspace
+					return espManager.Folder
 				end,
 			}
 
@@ -9386,7 +9298,7 @@ local function fn2()
 					ok2, result = pcall(require, replicatedStorage.Directory.Assets)
 
 					if not (ok2 and result) then
-						result = tbl4.Game and tbl4.Game.Assets
+						result = modules.Game and modules.Game.Assets
 					end
 				end
 
@@ -9399,7 +9311,7 @@ local function fn2()
 				end
 			end)
 
-			tbl5.ColorForCategory = function(arg)
+			espManager.ColorForCategory = function(arg)
 				local v7 = tbl6[arg]
 				if v7 and v7.Rarity and v7.Rarity.Color then
 					return v7.Rarity.Color
@@ -9407,17 +9319,17 @@ local function fn2()
 				return Color3.new(1, 1, 1)
 			end
 
-			tbl5.IsRare = function(arg)
-				local flag = tbl5.ColorForCategory(arg) ~= nil
+			espManager.IsRare = function(arg)
+				local flag = espManager.ColorForCategory(arg) ~= nil
 
 				if flag then
-					flag = (tbl5.RarityNumberFor(arg) or 0) >= 6
+					flag = (espManager.RarityNumberFor(arg) or 0) >= 6
 				end
 
 				return flag
 			end
 
-			tbl5.RarityNumberFor = function(arg)
+			espManager.RarityNumberFor = function(arg)
 				local v7 = tbl6[arg]
 				if v7 and v7.Rarity and v7.Rarity.RarityNumber then
 					return v7.Rarity.RarityNumber
@@ -9425,24 +9337,24 @@ local function fn2()
 				return 1
 			end
 
-			tbl5.UpdateEggMarkers = function()
+			espManager.UpdateEggMarkers = function()
 				if not enabled["ESP Eggs"] and not enabled["ESP Rare Eggs"] then
-					if next(tbl5.Markers) or #tbl5.Pool > 0 then
-						for k, marker in pairs(tbl5.Markers) do
+					if next(espManager.Markers) or #espManager.Pool > 0 then
+						for k, marker in pairs(espManager.Markers) do
 							if marker.Part then
 								marker.Part:Destroy()
 							end
 
-							tbl5.Markers[k] = nil
+							espManager.Markers[k] = nil
 						end
 
-						for _, v7 in ipairs(tbl5.Pool) do
+						for _, v7 in ipairs(espManager.Pool) do
 							if v7.Part then
 								v7.Part:Destroy()
 							end
 						end
 
-						tbl5.Pool = {}
+						espManager.Pool = {}
 					end
 
 					return
@@ -9450,26 +9362,26 @@ local function fn2()
 
 				farmState.RefreshEggs()
 				local tbl7 = {}
-				local v7 = tbl5.EnsureFolder()
+				local v7 = espManager.EnsureFolder()
 				local v8 = ipairs
 				local eggs = farmState.Eggs or {}
 
 				for _, egg in v8(eggs) do
-					local color = tbl5.IsRare(egg.AssetCategory)
+					local color = espManager.IsRare(egg.AssetCategory)
 
 					if enabled["ESP Eggs"] or enabled["ESP Rare Eggs"] and color then
 						local position = egg.BottomCFrame and egg.BottomCFrame.Position or nil
 
 						if position then
 							tbl7[egg.Uid] = true
-							local tbl8 = tbl5.Markers[egg.Uid]
+							local tbl8 = espManager.Markers[egg.Uid]
 							local text = string.format("%s | %s", egg.AssetCategory or "?", egg.State or "?")
 							local color2 = color and Color3.new(1, 0.5, 0) or Color3.new(1, 1, 1)
 							color = color and Color3.new(1, 0.4, 0) or Color3.new(0.2, 0.8, 1)
 
 							if not tbl8 or not tbl8.Part or not tbl8.Part.Parent then
-								if #tbl5.Pool > 0 then
-									tbl8 = table.remove(tbl5.Pool)
+								if #espManager.Pool > 0 then
+									tbl8 = table.remove(espManager.Pool)
 									tbl8.Part.Parent = v7
 									tbl8.Marker.Enabled = true
 								else
@@ -9505,7 +9417,7 @@ local function fn2()
 									tbl8 = { Part = part, Marker = billboardGui, Label = textLabel }
 								end
 
-								tbl5.Markers[egg.Uid] = tbl8
+								espManager.Markers[egg.Uid] = tbl8
 							end
 
 							if tbl8 and tbl8.Part then
@@ -9521,7 +9433,7 @@ local function fn2()
 					end
 				end
 
-				for k, marker in pairs(tbl5.Markers) do
+				for k, marker in pairs(espManager.Markers) do
 					if not tbl7[k] then
 						if marker.Marker then
 							marker.Marker.Enabled = false
@@ -9531,20 +9443,20 @@ local function fn2()
 							marker.Part.Parent = nil
 						end
 
-						table.insert(tbl5.Pool, marker)
-						tbl5.Markers[k] = nil
+						table.insert(espManager.Pool, marker)
+						espManager.Markers[k] = nil
 					end
 				end
 			end
 
-			tbl5.UpdateGuards = function()
+			espManager.UpdateGuards = function()
 				if not enabled["ESP Guards"] and not enabled["Guard Warning"] then
-					for k, guardMarker in pairs(tbl5.GuardMarkers) do
+					for k, guardMarker in pairs(espManager.GuardMarkers) do
 						if guardMarker.Parent then
 							guardMarker:Destroy()
 						end
 
-						tbl5.GuardMarkers[k] = nil
+						espManager.GuardMarkers[k] = nil
 					end
 
 					return
@@ -9563,7 +9475,7 @@ local function fn2()
 							guard:FindFirstChild("HumanoidRootPart")
 							local attribute = guard:GetAttribute("GuardState") or "Sleeping"
 							local attribute2 = guard:GetAttribute("TargetPlayer") or ""
-							local highlight = tbl5.GuardMarkers[child.Name]
+							local highlight = espManager.GuardMarkers[child.Name]
 
 							if enabled["ESP Guards"] then
 								if not highlight or not highlight.Parent then
@@ -9571,8 +9483,8 @@ local function fn2()
 									highlight.Name = "Guard_" .. child.Name
 									highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 									highlight.FillTransparency = 0.7
-									highlight.Parent = tbl5.EnsureFolder()
-									tbl5.GuardMarkers[child.Name] = highlight
+									highlight.Parent = espManager.EnsureFolder()
+									espManager.GuardMarkers[child.Name] = highlight
 								end
 
 								highlight.Adornee = guard
@@ -9592,22 +9504,22 @@ local function fn2()
 									highlight:Destroy()
 								end
 
-								tbl5.GuardMarkers[child.Name] = nil
+								espManager.GuardMarkers[child.Name] = nil
 							end
 
 							if enabled["Guard Warning"] and attribute2 == tostring(localPlayer.UserId) then
-								local guardWarningAt = tbl5.GuardWarningAt
+								local guardWarningAt = espManager.GuardWarningAt
 
 								if os.clock() - guardWarningAt > 2 then
-									tbl5.GuardWarningAt = os.clock()
-									fn4("Guard is chasing you! RUN!", "Guard Warning")
+									espManager.GuardWarningAt = os.clock()
+									notifyDeveloper("Guard is chasing you! RUN!", "Guard Warning")
 								end
 
 								farmState.SyncCarry()
 
 								if farmState.Carrying and enabled["Auto Drop Egg"] then
 									pcall(function()
-										tbl4.Game.EggCmds.RequestDropHeldAreaEgg("PlayerRequest")
+										modules.Game.EggCmds.RequestDropHeldAreaEgg("PlayerRequest")
 									end)
 
 									farmState.SyncCarry()
@@ -9618,23 +9530,23 @@ local function fn2()
 				end
 			end
 
-			tbl5.Step = function()
-				local lastUpdate = tbl5.LastUpdate
+			espManager.Step = function()
+				local lastUpdate = espManager.LastUpdate
 				if os.clock() - lastUpdate < 1 then
 					return
 				end
-				tbl5.LastUpdate = os.clock()
-				tbl5.UpdateEggMarkers()
-				tbl5.UpdateGuards()
+				espManager.LastUpdate = os.clock()
+				espManager.UpdateEggMarkers()
+				espManager.UpdateGuards()
 			end
 
-			return tbl5
+			return espManager
 		end
 
-		tbl4.ESP = fn25()
+		modules.ESP = createESPModule()
 
-		local function fn26()
-			local tbl5 = { Url = "", EggStealEnabled = false, MinRarity = 1 }
+		local function createWebhookManager()
+			local webhookManagerState = { Url = "", EggStealEnabled = false, MinRarity = 1 }
 
 			local tbl6 = {
 				Common = 13421772,
@@ -9649,16 +9561,16 @@ local function fn2()
 				Divine = 16766720,
 			}
 
-			local function fn27(arg)
+			local function formatWeight(arg)
 				if not arg then
 					return "0 Kg"
 				end
-				local v7, v8 = math.modf(math.round(arg * 100) / 100)
-				local str = tostring(math.abs(v7)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+				local integerPart, fractionalPart = math.modf(math.round(arg * 100) / 100)
+				local str = tostring(math.abs(integerPart)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
 				local str2
 
-				if math.abs(v8) > 0.001 then
-					str2 = str .. string.format("%.2f", math.abs(v8)):sub(2)
+				if math.abs(fractionalPart) > 0.001 then
+					str2 = str .. string.format("%.2f", math.abs(fractionalPart)):sub(2)
 				else
 					str2 = str
 				end
@@ -9666,8 +9578,8 @@ local function fn2()
 				return str2 .. " Kg"
 			end
 
-			tbl5.SendPayload = function(arg)
-				local url = tbl5.Url
+			webhookManagerState.SendPayload = function(arg)
+				local url = webhookManagerState.Url
 
 				if not url or url == "" then
 					url = enabled["Discord Webhook URL"] or ""
@@ -9687,7 +9599,7 @@ local function fn2()
 				local n3 = 1
 
 				pcall(function()
-					local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+					local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 					local directory = assets and assets.Directory or assets or {}
 
 					if directory[arg.petCategory] and directory[arg.petCategory].ModelWeight then
@@ -9695,11 +9607,11 @@ local function fn2()
 					end
 				end)
 
-				local v7 = fn27(n3 * n2 ^ 3)
+				local v7 = formatWeight(n3 * n2 ^ 3)
 				local str2 = "0/s"
 
 				pcall(function()
-					local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+					local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 					local n4 = (assets and assets.Directory or assets or {})[arg.petCategory]
 					n4 = n4 and tonumber(n4.EarningRate) or 0
 
@@ -9720,7 +9632,7 @@ local function fn2()
 							end
 						end
 
-						local getSave = tbl4.Game and tbl4.Game.GetSave and tbl4.Game.GetSave() or {}
+						local getSave = modules.Game and modules.Game.GetSave and modules.Game.GetSave() or {}
 						local Mutations = nil
 
 						pcall(function()
@@ -9731,7 +9643,7 @@ local function fn2()
 							end
 						end)
 
-						local rebirthUtil = tbl4.Game and tbl4.Game.RebirthUtil
+						local rebirthUtil = modules.Game and modules.Game.RebirthUtil
 						local getTotalMutationsEarningMulti = Mutations and Mutations.GetTotalMutationsEarningMulti and Mutations.GetTotalMutationsEarningMulti(tbl7) or 1
 						local rebirthToMultiplier = rebirthUtil and rebirthUtil.RebirthToMultiplier
 
@@ -9786,13 +9698,13 @@ local function fn2()
 				tbl7.embeds = embeds
 
 				task.spawn(function()
-					pcall(tbl4.Webhook, url, tbl7)
+					pcall(modules.Webhook, url, tbl7)
 				end)
 			end
 
-			tbl5.QueueEggSteal = function(arg)
-				local eggStealEnabled = tbl5.EggStealEnabled or enabled["Webhook Egg Steal"]
-				local url = tbl5.Url
+			webhookManagerState.QueueEggSteal = function(arg)
+				local eggStealEnabled = webhookManagerState.EggStealEnabled or enabled["Webhook Egg Steal"]
+				local url = webhookManagerState.Url
 
 				if not url or url == "" then
 					url = enabled["Discord Webhook URL"] or ""
@@ -9801,19 +9713,19 @@ local function fn2()
 				if not eggStealEnabled or not url or url == "" or not arg then
 					return
 				end
-				local getEggRarityNumber = tbl4.Steal and tbl4.Steal.GetEggRarityNumber
+				local getEggRarityNumber = modules.Steal and modules.Steal.GetEggRarityNumber
 				local n = 1
 
 				if getEggRarityNumber then
-					n = tbl4.Steal.GetEggRarityNumber(arg)
+					n = modules.Steal.GetEggRarityNumber(arg)
 				end
 
-				if n < (tbl5.MinRarity or 1) then
+				if n < (webhookManagerState.MinRarity or 1) then
 					return
 				end
 				local assetCategory = arg.AssetCategory or "Unknown"
-				local getEggDisplayName = tbl4.Steal and tbl4.Steal.GetEggDisplayName and tbl4.Steal.GetEggDisplayName(assetCategory) or tostring(assetCategory)
-				local getEggRarityName = tbl4.Steal and tbl4.Steal.GetEggRarityName and tbl4.Steal.GetEggRarityName(assetCategory) or "Common"
+				local getEggDisplayName = modules.Steal and modules.Steal.GetEggDisplayName and modules.Steal.GetEggDisplayName(assetCategory) or tostring(assetCategory)
+				local getEggRarityName = modules.Steal and modules.Steal.GetEggRarityName and modules.Steal.GetEggRarityName(assetCategory) or "Common"
 				local n2 = tonumber(arg.AssetScale) or tonumber(arg.Scale) or 1
 				local baseMutation
 
@@ -9828,7 +9740,7 @@ local function fn2()
 					end
 				end
 
-				tbl5.SendPayload({
+				webhookManagerState.SendPayload({
 					petCategory = assetCategory,
 					petName = getEggDisplayName,
 					rarityName = getEggRarityName,
@@ -9841,17 +9753,17 @@ local function fn2()
 				})
 			end
 
-			tbl5.Step = function()
+			webhookManagerState.Step = function()
 			end
 
-			return tbl5
+			return webhookManagerState
 		end
 
-		tbl4.WebhookManager = fn26()
+		modules.WebhookManager = createWebhookManager()
 
-		local function fn27()
-			local tbl5 = { ShowOnlyPlaced = true, SortMode = "Income", Paragraph = nil }
-			local assets = tbl4.Game and tbl4.Game.Assets
+		local function createPetPredictor()
+			local petPredictor = { ShowOnlyPlaced = true, SortMode = "Income", Paragraph = nil }
+			local assets = modules.Game and modules.Game.Assets
 			local Assets
 
 			if assets then
@@ -9860,7 +9772,7 @@ local function fn2()
 				Assets = replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 			end
 
-			local save = tbl4.Game and tbl4.Game.Save
+			local save = modules.Game and modules.Game.Save
 			local Save
 
 			if save then
@@ -9879,7 +9791,7 @@ local function fn2()
 				end
 			end)
 
-			local rebirthUtil = tbl4.Game and tbl4.Game.RebirthUtil
+			local rebirthUtil = modules.Game and modules.Game.RebirthUtil
 			local MonetizationEntitlements = nil
 
 			pcall(function()
@@ -9888,21 +9800,21 @@ local function fn2()
 				end
 			end)
 
-			local function fn28(arg)
+			local function formatPetWeight(arg)
 				if not arg then
 					return "0 Kg"
 				end
-				local v7, v8 = math.modf(math.round(arg * 100) / 100)
-				local str = tostring(math.abs(v7)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+				local integerPart, fractionalPart = math.modf(math.round(arg * 100) / 100)
+				local str = tostring(math.abs(integerPart)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
 
-				if math.abs(v8) > 0.001 then
-					str ..= string.format("%.2f", math.abs(v8)):sub(2)
+				if math.abs(fractionalPart) > 0.001 then
+					str ..= string.format("%.2f", math.abs(fractionalPart)):sub(2)
 				end
 
 				return str .. " Kg"
 			end
 
-			local function fn29(arg)
+			local function formatIncomeRate(arg)
 				if not arg or arg == 0 then
 					return "0/s"
 				end
@@ -9925,7 +9837,7 @@ local function fn2()
 				return string.format("%d/s", arg)
 			end
 
-			local function fn30(arg)
+			local function formatRemainingTime(arg)
 				if arg <= 0 then
 					return "READY"
 				end
@@ -9938,7 +9850,7 @@ local function fn2()
 				return string.format("%02dm %02ds", n2, n3)
 			end
 
-			local function fn31(arg, arg2, arg3, arg4)
+			local function calculatePetIncome(arg, arg2, arg3, arg4)
 				local n = (Assets and Assets.Directory or Assets or {})[arg]
 				n = n and tonumber(n.EarningRate) or 0
 				local n2 = arg2 or 1
@@ -9973,7 +9885,7 @@ local function fn2()
 				return math.max(math.round(n * n3 * getTotalMutationsEarningMulti * (rebirthToMultiplier + (getAssetMoneyAdditiveRebirthBonu or 0))), 1), n, n3, getTotalMutationsEarningMulti
 			end
 
-			local function fn32(arg, arg2)
+			local function getEggHatchStatus(arg, arg2)
 				local placement = arg.Placement
 				if not placement then
 					return { IsPlaced = false, RemainingSeconds = 0, IsReady = false, StatusStr = "INVENTORY" }
@@ -10002,11 +9914,11 @@ local function fn2()
 					IsPlaced = true,
 					RemainingSeconds = n2,
 					IsReady = flag,
-					StatusStr = flag and "READY TO HATCH" or fn30(n2),
+					StatusStr = flag and "READY TO HATCH" or formatRemainingTime(n2),
 				}
 			end
 
-			tbl5.GetForecastText = function()
+			petPredictor.GetForecastText = function()
 				local get = Save.Get and Save.Get() or Save.Peek and Save.Peek() or {}
 				if not get or not get.EggInventory then
 					return "No egg inventory data available."
@@ -10015,7 +9927,7 @@ local function fn2()
 				local tbl6 = {}
 
 				for k, v7 in pairs(get.EggInventory) do
-					if not tbl5.ShowOnlyPlaced or v7.Placement ~= nil then
+					if not petPredictor.ShowOnlyPlaced or v7.Placement ~= nil then
 						local assetCategory = v7.AssetCategory or "Unknown"
 						local n = tonumber(v7.AssetScale) or 1
 						local mutations = v7.Mutations or {}
@@ -10024,9 +9936,9 @@ local function fn2()
 						local rarity = v8 and v8.Rarity
 						local displayName = rarity and (rarity.DisplayName or rarity.Name) or "Common"
 						rarity = rarity and rarity.RarityNumber or 1
-						local v9 = fn28((v8 and v8.ModelWeight or 1) * n ^ 3)
-						local v10 = fn31(assetCategory, n, mutations, get)
-						local v11 = fn32(v7, serverTimeNow)
+						local v9 = formatPetWeight((v8 and v8.ModelWeight or 1) * n ^ 3)
+						local v10 = calculatePetIncome(assetCategory, n, mutations, get)
+						local v11 = getEggHatchStatus(v7, serverTimeNow)
 
 						if baseMutation == "Rainbow" then
 							baseMutation = "Rainbow (+3x)"
@@ -10047,28 +9959,28 @@ local function fn2()
 							KgStr = v9,
 							MutDisplay = baseMutation,
 							FinalRate = v10,
-							IncomeStr = fn29(v10),
+							IncomeStr = formatIncomeRate(v10),
 							Growth = v11,
 						})
 					end
 				end
 
 				if #tbl6 == 0 then
-					return tbl5.ShowOnlyPlaced and "No placed eggs in your pen." or "No eggs in inventory."
+					return petPredictor.ShowOnlyPlaced and "No placed eggs in your pen." or "No eggs in inventory."
 				end
 
-				if tbl5.SortMode == "Income" then
+				if petPredictor.SortMode == "Income" then
 					table.sort(tbl6, function(arg, arg2)
 						return arg.FinalRate > arg2.FinalRate
 					end)
-				elseif tbl5.SortMode == "Rarity" then
+				elseif petPredictor.SortMode == "Rarity" then
 					table.sort(tbl6, function(arg, arg2)
 						if arg.RarityNumber ~= arg2.RarityNumber then
 							return arg.RarityNumber > arg2.RarityNumber
 						end
 						return arg.FinalRate > arg2.FinalRate
 					end)
-				elseif tbl5.SortMode == "Time" then
+				elseif petPredictor.SortMode == "Time" then
 					table.sort(tbl6, function(arg, arg2)
 						return arg.Growth.RemainingSeconds < arg2.Growth.RemainingSeconds
 					end)
@@ -10126,26 +10038,26 @@ local function fn2()
 				return table.concat(tbl8, "\n")
 			end
 
-			tbl5.UpdateParagraph = function()
-				if not tbl5.Paragraph then
+			petPredictor.UpdateParagraph = function()
+				if not petPredictor.Paragraph then
 					return
 				end
-				local v7 = tbl5.GetForecastText()
-				local str = string.format("Pet Predictor (%s)", tbl5.ShowOnlyPlaced and "Pen Only" or "All Eggs")
+				local v7 = petPredictor.GetForecastText()
+				local str = string.format("Pet Predictor (%s)", petPredictor.ShowOnlyPlaced and "Pen Only" or "All Eggs")
 
 				pcall(function()
-					tbl5.Paragraph:Set({ str, v7 })
+					petPredictor.Paragraph:Set({ str, v7 })
 				end)
 			end
 
-			return tbl5
+			return petPredictor
 		end
 
-		tbl4.PetPredictor = fn27()
+		modules.PetPredictor = createPetPredictor()
 
-		local function fn28()
-			local tbl5 = { Paragraph = nil }
-			local assets = tbl4.Game and tbl4.Game.Assets
+		local function createFusePredictor()
+			local fusePredictor = { Paragraph = nil }
+			local assets = modules.Game and modules.Game.Assets
 			local Assets
 
 			if assets then
@@ -10154,7 +10066,7 @@ local function fn2()
 				Assets = replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 			end
 
-			local save = tbl4.Game and tbl4.Game.Save
+			local save = modules.Game and modules.Game.Save
 			local Save
 
 			if save then
@@ -10173,7 +10085,7 @@ local function fn2()
 				end
 			end)
 
-			local rebirthUtil = tbl4.Game and tbl4.Game.RebirthUtil
+			local rebirthUtil = modules.Game and modules.Game.RebirthUtil
 			local MonetizationEntitlements = nil
 
 			pcall(function()
@@ -10192,21 +10104,21 @@ local function fn2()
 				{ name = "Colossal", min = 9.5, max = 12.5, baseWeight = 3, color = "#BA55D3" },
 			}
 
-			local function fn29(arg)
+			local function formatFuseWeight(arg)
 				if not arg then
 					return "0 Kg"
 				end
-				local v7, v8 = math.modf(math.round(arg * 100) / 100)
-				local str = tostring(math.abs(v7)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+				local integerPart, fractionalPart = math.modf(math.round(arg * 100) / 100)
+				local str = tostring(math.abs(integerPart)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
 
-				if math.abs(v8) > 0.001 then
-					str ..= string.format("%.2f", math.abs(v8)):sub(2)
+				if math.abs(fractionalPart) > 0.001 then
+					str ..= string.format("%.2f", math.abs(fractionalPart)):sub(2)
 				end
 
 				return str .. " Kg"
 			end
 
-			local function fn30(arg)
+			local function formatFuseIncomeRate(arg)
 				if not arg or arg == 0 then
 					return "0/s"
 				end
@@ -10229,11 +10141,11 @@ local function fn2()
 				return string.format("%d/s", arg)
 			end
 
-			local function fn31(arg, arg2, arg3)
+			local function estimateAverageWeight(arg, arg2, arg3)
 				return math.exp(math.log(arg) / 0.69314718055994529 * math.log((arg2 + arg3) / 2) / 0.69314718055994529 * 0.6)
 			end
 
-			local function fn32(arg, arg2, arg3, arg4)
+			local function calculateFuseIncome(arg, arg2, arg3, arg4)
 				local v7 = (Assets and Assets.Directory or Assets or {})[arg]
 				local n = v7 and tonumber(v7.EarningRate) or 0
 				arg2 = arg2 or 1
@@ -10268,7 +10180,7 @@ local function fn2()
 				return math.max(math.round(n * n2 * getTotalMutationsEarningMulti * (rebirthToMultiplier + (getAssetMoneyAdditiveRebirthBonu or 0))), 1), n, n2, getTotalMutationsEarningMulti
 			end
 
-			tbl5.GetForecastText = function()
+			fusePredictor.GetForecastText = function()
 				local get = Save.Get and Save.Get() or Save.Peek and Save.Peek() or {}
 				if not get then
 					return "<font color=\"#888899\">No player save data available.</font>"
@@ -10319,7 +10231,7 @@ local function fn2()
 				for i, v7 in ipairs(tbl7) do
 					local n3 = tonumber(v7.Scale) or 1
 					n += n3
-					local v8 = fn29(modelWeight * n3 ^ 3)
+					local v8 = formatFuseWeight(modelWeight * n3 ^ 3)
 					local str3 = (v7.Mutations or {})[1] or "Normal"
 
 					if str3 ~= "Normal" then
@@ -10341,12 +10253,12 @@ local function fn2()
 
 				local n3 = n / 3
 				table.insert(tbl8, "")
-				table.insert(tbl8, string.format("â¢ <b>Average Scale:</b> <font color=\"#00FF7F\"><b>%.2fx (%s)</b></font>", n3, fn29(modelWeight * n3 ^ 3)))
+				table.insert(tbl8, string.format("â¢ <b>Average Scale:</b> <font color=\"#00FF7F\"><b>%.2fx (%s)</b></font>", n3, formatFuseWeight(modelWeight * n3 ^ 3)))
 				local tbl9 = {}
 				local n4 = 0
 
 				for _, v7 in ipairs(tbl6) do
-					local n5 = v7.baseWeight * fn31(n3, v7.min, v7.max)
+					local n5 = v7.baseWeight * estimateAverageWeight(n3, v7.min, v7.max)
 					n4 += n5
 					table.insert(tbl9, { tier = v7, weight = n5 })
 				end
@@ -10360,38 +10272,38 @@ local function fn2()
 					if n5 >= 0.5 then
 						local tier = v7.tier
 						local n6 = modelWeight * tier.max ^ 3
-						table.insert(tbl8, string.format("  <font color=\"%s\">â¢ %-8s</font> <font color=\"#AAAAAA\">(%.2fx - %.2fx / %s - %s):</font> <b><font color=\"%s\">%.1f%%</font></b>", tier.color, tier.name, tier.min, tier.max, fn29(modelWeight * tier.min ^ 3), fn29(n6), n5 >= 20 and "#00FF7F" or "#FFD700", n5))
+						table.insert(tbl8, string.format("  <font color=\"%s\">â¢ %-8s</font> <font color=\"#AAAAAA\">(%.2fx - %.2fx / %s - %s):</font> <b><font color=\"%s\">%.1f%%</font></b>", tier.color, tier.name, tier.min, tier.max, formatFuseWeight(modelWeight * tier.min ^ 3), formatFuseWeight(n6), n5 >= 20 and "#00FF7F" or "#FFD700", n5))
 					end
 				end
 
 				local n5 = n3 * 0.95
 				local n6 = n3 * 1.55
-				local v7 = fn32(category, n5, str2 ~= "Normal" and { str2 } or {}, get)
-				local v8 = fn32(category, n6, str2 ~= "Normal" and { str2 } or {}, get)
+				local v7 = calculateFuseIncome(category, n5, str2 ~= "Normal" and { str2 } or {}, get)
+				local v8 = calculateFuseIncome(category, n6, str2 ~= "Normal" and { str2 } or {}, get)
 				table.insert(tbl8, "")
 				table.insert(tbl8, string.format("â¢ <b>Predicted Mutation:</b> <font color=\"#FFD700\">%s</font>", str2))
-				table.insert(tbl8, string.format("â¢ <b>Estimated Income:</b> <b><font color=\"#00FF7F\">%s</font></b> ~ <b><font color=\"#00FF7F\">%s</font></b>", fn30(v7), fn30(v8)))
+				table.insert(tbl8, string.format("â¢ <b>Estimated Income:</b> <b><font color=\"#00FF7F\">%s</font></b> ~ <b><font color=\"#00FF7F\">%s</font></b>", formatFuseIncomeRate(v7), formatFuseIncomeRate(v8)))
 				return table.concat(tbl8, "\n")
 			end
 
-			tbl5.UpdateParagraph = function()
-				if not tbl5.Paragraph then
+			fusePredictor.UpdateParagraph = function()
+				if not fusePredictor.Paragraph then
 					return
 				end
-				local v7 = tbl5.GetForecastText()
+				local v7 = fusePredictor.GetForecastText()
 
 				pcall(function()
-					tbl5.Paragraph:Set({ "Fuse Predictor", v7 })
+					fusePredictor.Paragraph:Set({ "Fuse Predictor", v7 })
 				end)
 			end
 
-			return tbl5
+			return fusePredictor
 		end
 
-		tbl4.FusePredictor = fn28()
+		modules.FusePredictor = createFusePredictor()
 
-		local function fn29()
-			local tbl5 = {
+		local function createFuseModule()
+			local fuseManager = {
 				PriorityMode = "Lowest Rarity First",
 				MaxRarity = 0,
 				SpecificSpecies = {},
@@ -10404,7 +10316,7 @@ local function fn2()
 			local tbl6 = {}
 
 			pcall(function()
-				local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+				local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 				local directory = assets and assets.Directory or assets
 
 				if directory then
@@ -10414,13 +10326,13 @@ local function fn2()
 				end
 			end)
 
-			local function fn30()
+			local function getFuseAssetDirectory()
 				if next(tbl6) then
 					return tbl6
 				end
 
 				pcall(function()
-					local assets = tbl4.Game and tbl4.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+					local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
 					local directory = assets and assets.Directory or type(assets) == "table" and assets
 
 					if directory and type(directory) == "table" then
@@ -10433,7 +10345,7 @@ local function fn2()
 				return tbl6
 			end
 
-			tbl5.ResolveRarityNumber = function(arg)
+			fuseManager.ResolveRarityNumber = function(arg)
 				if not arg then
 					return 1
 				end
@@ -10446,7 +10358,7 @@ local function fn2()
 					arg = arg.AssetCategory or arg.Category or arg.Name or arg.DisplayName or arg[1]
 				end
 
-				local v7 = fn30()
+				local v7 = getFuseAssetDirectory()
 				v7 = v7 and v7[arg]
 
 				if v7 then
@@ -10469,8 +10381,8 @@ local function fn2()
 					end
 				end
 
-				if tbl4.Steal and tbl4.Steal.GetEggRarityNumber then
-					local ok, result = pcall(tbl4.Steal.GetEggRarityNumber, arg)
+				if modules.Steal and modules.Steal.GetEggRarityNumber then
+					local ok, result = pcall(modules.Steal.GetEggRarityNumber, arg)
 					if ok and type(result) == "number" and result > 0 then
 						return result
 					end
@@ -10479,9 +10391,9 @@ local function fn2()
 				return 1
 			end
 
-			tbl5.GetFuseryRemotes = function()
-				if tbl4.Game and tbl4.Game.Remotes and tbl4.Game.Remotes.Fusery then
-					return tbl4.Game.Remotes.Fusery
+			fuseManager.GetFuseryRemotes = function()
+				if modules.Game and modules.Game.Remotes and modules.Game.Remotes.Fusery then
+					return modules.Game.Remotes.Fusery
 				end
 
 				local ok, result = pcall(function()
@@ -10494,7 +10406,7 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.IsPetEligible = function(arg, arg2, arg3)
+			fuseManager.IsPetEligible = function(arg, arg2, arg3)
 				if not arg2 or type(arg2) ~= "table" or not arg2.Category then
 					return false
 				end
@@ -10515,7 +10427,7 @@ local function fn2()
 					return false
 				end
 
-				if tbl5.SkipMutations then
+				if fuseManager.SkipMutations then
 					if type(arg2.Mutations) == "table" and #arg2.Mutations > 0 then
 						return false
 					end
@@ -10525,13 +10437,13 @@ local function fn2()
 					end
 				end
 
-				if tbl5.MaxRarity and tbl5.MaxRarity > 0 then
-					if tbl5.MaxRarity < tbl5.ResolveRarityNumber(arg2.Category) then
+				if fuseManager.MaxRarity and fuseManager.MaxRarity > 0 then
+					if fuseManager.MaxRarity < fuseManager.ResolveRarityNumber(arg2.Category) then
 						return false
 					end
 				end
 
-				if #tbl5.SpecificSpecies > 0 or tbl5.PriorityMode == "Specific Species Only" then
+				if #fuseManager.SpecificSpecies > 0 or fuseManager.PriorityMode == "Specific Species Only" then
 					local category = arg2.Category
 
 					if displayName then
@@ -10541,7 +10453,7 @@ local function fn2()
 					displayName = displayName or category
 					local flag = false
 
-					for _, specificSpecy in ipairs(tbl5.SpecificSpecies) do
+					for _, specificSpecy in ipairs(fuseManager.SpecificSpecies) do
 						if specificSpecy == category or specificSpecy == displayName or string.find(specificSpecy, category, 1, true) or string.find(specificSpecy, displayName, 1, true) then
 							flag = true
 							break
@@ -10556,19 +10468,19 @@ local function fn2()
 				return true
 			end
 
-			tbl5.Execute = function()
-				if tbl5.IsFusing then
+			fuseManager.Execute = function()
+				if fuseManager.IsFusing then
 					return false, "busy"
 				end
-				local lastFuseAt = tbl5.LastFuseAt
+				local lastFuseAt = fuseManager.LastFuseAt
 				if os.clock() - lastFuseAt < 1.8 then
 					return false, "cooldown"
 				end
-				local v7 = tbl5.GetFuseryRemotes()
+				local v7 = fuseManager.GetFuseryRemotes()
 				if not v7 then
 					return false, "no fusery remotes"
 				end
-				local getSave = tbl4.Game and tbl4.Game.GetSave and tbl4.Game.GetSave()
+				local getSave = modules.Game and modules.Game.GetSave and modules.Game.GetSave()
 				if not getSave then
 					return false, "no save data"
 				end
@@ -10591,7 +10503,7 @@ local function fn2()
 					end)
 
 					task.wait(0.3)
-					getSave2 = tbl4.Game and tbl4.Game.GetSave and tbl4.Game.GetSave() or getSave
+					getSave2 = modules.Game and modules.Game.GetSave and modules.Game.GetSave() or getSave
 				else
 					getSave2 = getSave
 				end
@@ -10628,8 +10540,8 @@ local function fn2()
 
 						if type(v11) == "string" or type(v11) == "table" and not v11.Category then
 							pcall(function()
-								if tbl4.Game and tbl4.Game.AssetItemSerialization and tbl4.Game.AssetItemSerialization.Deserialize then
-									v11 = tbl4.Game.AssetItemSerialization.Deserialize(v11)
+								if modules.Game and modules.Game.AssetItemSerialization and modules.Game.AssetItemSerialization.Deserialize then
+									v11 = modules.Game.AssetItemSerialization.Deserialize(v11)
 								end
 							end)
 						end
@@ -10641,8 +10553,8 @@ local function fn2()
 					end
 				end
 
-				tbl5.IsFusing = true
-				tbl5.LastFuseAt = os.clock()
+				fuseManager.IsFusing = true
+				fuseManager.LastFuseAt = os.clock()
 
 				local ok, result = pcall(function()
 					if #tbl8 == 3 then
@@ -10656,8 +10568,8 @@ local function fn2()
 								v7.FinishReveal:InvokeServer()
 							end
 
-							if tbl4.FusePredictor and tbl4.FusePredictor.UpdateParagraph then
-								tbl4.FusePredictor.UpdateParagraph()
+							if modules.FusePredictor and modules.FusePredictor.UpdateParagraph then
+								modules.FusePredictor.UpdateParagraph()
 							end
 
 							return true, "fused"
@@ -10676,13 +10588,13 @@ local function fn2()
 
 								if type(v11) == "string" or type(v11) == "table" and not v11.Category then
 									pcall(function()
-										if tbl4.Game and tbl4.Game.AssetItemSerialization and tbl4.Game.AssetItemSerialization.Deserialize then
-											v12 = tbl4.Game.AssetItemSerialization.Deserialize(v11)
+										if modules.Game and modules.Game.AssetItemSerialization and modules.Game.AssetItemSerialization.Deserialize then
+											v12 = modules.Game.AssetItemSerialization.Deserialize(v11)
 										end
 									end)
 								end
 
-								if tbl5.IsPetEligible(k, v12, tbl7) and v12.Category == category then
+								if fuseManager.IsPetEligible(k, v12, tbl7) and v12.Category == category then
 									table.insert(tbl9, { uid = k, item = v12, scale = tonumber(v12.Scale) or 1 })
 								end
 							end
@@ -10713,14 +10625,14 @@ local function fn2()
 										v7.FinishReveal:InvokeServer()
 									end
 
-									if tbl4.FusePredictor and tbl4.FusePredictor.UpdateParagraph then
-										tbl4.FusePredictor.UpdateParagraph()
+									if modules.FusePredictor and modules.FusePredictor.UpdateParagraph then
+										modules.FusePredictor.UpdateParagraph()
 									end
 
 									return true, "fused"
 								end
 							end
-						elseif tbl5.EjectIncomplete then
+						elseif fuseManager.EjectIncomplete then
 							for _, v11 in ipairs(tbl8) do
 								_G.LastAction = string.format("Fuse: Ejecting incomplete slot %s", tostring(v11))
 								v7.EjectPet:InvokeServer(v11)
@@ -10740,17 +10652,17 @@ local function fn2()
 
 						if type(v11) == "string" or type(v11) == "table" and not v11.Category then
 							pcall(function()
-								if tbl4.Game and tbl4.Game.AssetItemSerialization and tbl4.Game.AssetItemSerialization.Deserialize then
-									v12 = tbl4.Game.AssetItemSerialization.Deserialize(v11)
+								if modules.Game and modules.Game.AssetItemSerialization and modules.Game.AssetItemSerialization.Deserialize then
+									v12 = modules.Game.AssetItemSerialization.Deserialize(v11)
 								end
 							end)
 						end
 
-						if tbl5.IsPetEligible(k, v12, tbl7) then
+						if fuseManager.IsPetEligible(k, v12, tbl7) then
 							local category2 = v12.Category
 
 							if not tbl9[category2] then
-								tbl9[category2] = { category = category2, rarityNum = tbl5.ResolveRarityNumber(category2), pets = {} }
+								tbl9[category2] = { category = category2, rarityNum = fuseManager.ResolveRarityNumber(category2), pets = {} }
 							end
 
 							table.insert(tbl9[category2].pets, { uid = k, item = v12, scale = tonumber(v12.Scale) or 1 })
@@ -10769,21 +10681,21 @@ local function fn2()
 						return false, "no 3x matching pets available"
 					end
 
-					if tbl5.PriorityMode == "Lowest Rarity First" then
+					if fuseManager.PriorityMode == "Lowest Rarity First" then
 						table.sort(tbl10, function(arg, arg2)
 							if arg.rarityNum == arg2.rarityNum then
 								return #arg.pets > #arg2.pets
 							end
 							return arg.rarityNum < arg2.rarityNum
 						end)
-					elseif tbl5.PriorityMode == "Highest Rarity First" then
+					elseif fuseManager.PriorityMode == "Highest Rarity First" then
 						table.sort(tbl10, function(arg, arg2)
 							if arg.rarityNum == arg2.rarityNum then
 								return #arg.pets > #arg2.pets
 							end
 							return arg.rarityNum > arg2.rarityNum
 						end)
-					elseif tbl5.PriorityMode == "Most Duplicates First" then
+					elseif fuseManager.PriorityMode == "Most Duplicates First" then
 						table.sort(tbl10, function(arg, arg2)
 							if #arg.pets == #arg2.pets then
 								return arg.rarityNum < arg2.rarityNum
@@ -10827,8 +10739,8 @@ local function fn2()
 								v7.FinishReveal:InvokeServer()
 							end
 
-							if tbl4.FusePredictor and tbl4.FusePredictor.UpdateParagraph then
-								tbl4.FusePredictor.UpdateParagraph()
+							if modules.FusePredictor and modules.FusePredictor.UpdateParagraph then
+								modules.FusePredictor.UpdateParagraph()
 							end
 
 							return true, string.format("Fused 3x %s", v11.category)
@@ -10840,30 +10752,30 @@ local function fn2()
 					return false, "could not load 3 pets"
 				end)
 
-				tbl5.IsFusing = false
+				fuseManager.IsFusing = false
 				return ok, result
 			end
 
-			tbl5.Step = function()
+			fuseManager.Step = function()
 				if not enabled["Auto Fuse Machine"] then
 					return
 				end
-				tbl5.Execute()
+				fuseManager.Execute()
 			end
 
-			return tbl5
+			return fuseManager
 		end
 
-		tbl4.Fuse = fn29()
-		tbl4.AntiTrap = {}
+		modules.Fuse = createFuseModule()
+		modules.AntiTrap = {}
 
-		local function fn30()
-			local steal = tbl4.Steal
-			local farmState = tbl4.FarmState
-			local treadmill = tbl4.Treadmill
-			local utils = tbl4.Utils
+		local function createScrambleModule()
+			local steal = modules.Steal
+			local farmState = modules.FarmState
+			local treadmill = modules.Treadmill
+			local utils = modules.Utils
 
-			local tbl5 = {
+			local scrambleManager = {
 				Snapshot = nil,
 				LastSnapshotFetch = 0,
 				SnapshotInterval = 1.8,
@@ -10896,31 +10808,31 @@ local function fn2()
 				CachedScramBat = nil,
 			}
 
-			local function fn31(arg)
+			local function parseCFrameValue(arg)
 				if typeof(arg) == "CFrame" then
 					return arg
 				end
 
 				if type(arg) == "string" then
-					local tbl6 = {}
+					local components = {}
 
 					for match in string.gmatch(arg, "[-0-9%.e]+") do
-						table.insert(tbl6, tonumber(match))
+						table.insert(components, tonumber(match))
 					end
 
-					if #tbl6 >= 12 then
-						return CFrame.new(unpack(tbl6))
+					if #components >= 12 then
+						return CFrame.new(unpack(components))
 					end
 
-					if #tbl6 >= 3 then
-						return CFrame.new(tbl6[1], tbl6[2], tbl6[3])
+					if #components >= 3 then
+						return CFrame.new(components[1], components[2], components[3])
 					end
 				end
 
 				return nil
 			end
 
-			local function fn32(arg)
+			local function normalizeDroneTier(arg)
 				local str = tostring(arg or ""):lower()
 				if str:find("aug") then
 					return "AugmentedDrone", 3
@@ -10936,9 +10848,9 @@ local function fn2()
 				return "ScrapDrone", 1
 			end
 
-			local function fn33()
+			local function getScrambleRemotes()
 				local ReplicatedStorage = game:GetService("ReplicatedStorage")
-				local remotes = tbl4.Game and tbl4.Game.Remotes
+				local remotes = modules.Game and modules.Game.Remotes
 
 				if not remotes then
 					remotes = ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
@@ -10964,12 +10876,12 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.GetSnapshot = function(arg)
+			scrambleManager.GetSnapshot = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.Snapshot and now - tbl5.LastSnapshotFetch < tbl5.SnapshotInterval then
-					return tbl5.Snapshot
+				if not arg and scrambleManager.Snapshot and now - scrambleManager.LastSnapshotFetch < scrambleManager.SnapshotInterval then
+					return scrambleManager.Snapshot
 				end
-				local v7 = fn33()
+				local v7 = getScrambleRemotes()
 
 				if v7 and v7.Request then
 					local ok, snapshot = pcall(function()
@@ -10977,11 +10889,11 @@ local function fn2()
 					end)
 
 					if ok and type(snapshot) == "table" then
-						tbl5.Snapshot = snapshot
-						tbl5.LastSnapshotFetch = now
+						scrambleManager.Snapshot = snapshot
+						scrambleManager.LastSnapshotFetch = now
 
 						if snapshot.Drones and snapshot.Drones.Upserts then
-							tbl5.ActiveDrones = snapshot.Drones.Upserts
+							scrambleManager.ActiveDrones = snapshot.Drones.Upserts
 						end
 
 						local activeDrops = {}
@@ -10994,35 +10906,35 @@ local function fn2()
 							end
 						end
 
-						tbl5.ActiveDrops = activeDrops
+						scrambleManager.ActiveDrops = activeDrops
 						return snapshot
 					end
 				end
 
-				return tbl5.Snapshot
+				return scrambleManager.Snapshot
 			end
 
-			tbl5.IsEventActive = function()
-				local v7 = tbl5.GetSnapshot()
+			scrambleManager.IsEventActive = function()
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 or not v7.Window then
 					return false
 				end
 				return v7.Window.Active == true
 			end
 
-			tbl5.ReleaseMovement = function()
-				tbl5.IsFarmingDrone = false
-				tbl5.CurrentTargetDrone = nil
-				tbl5.CurrentTargetInfo = "None"
-				tbl5.CachedOrigBat = nil
-				tbl5.CachedScramBat = nil
+			scrambleManager.ReleaseMovement = function()
+				scrambleManager.IsFarmingDrone = false
+				scrambleManager.CurrentTargetDrone = nil
+				scrambleManager.CurrentTargetInfo = "None"
+				scrambleManager.CachedOrigBat = nil
+				scrambleManager.CachedScramBat = nil
 
-				if tbl4.Movement then
-					tbl4.Movement.Release("ScrambleDrone")
+				if modules.Movement then
+					modules.Movement.Release("ScrambleDrone")
 				end
 			end
 
-			tbl5.CanRun = function()
+			scrambleManager.CanRun = function()
 				if not enabled["Auto Farm Drones"] then
 					return false
 				end
@@ -11030,13 +10942,13 @@ local function fn2()
 				if steal and steal.IsNightOrWallClosed and steal.IsNightOrWallClosed() then
 					return false
 				end
-				local orchestratorMode = tbl5.Config.OrchestratorMode or "Prioritize Event"
+				local orchestratorMode = scrambleManager.Config.OrchestratorMode or "Prioritize Event"
 				if orchestratorMode == "Prioritize Event" then
-					return tbl5.IsEventActive()
+					return scrambleManager.IsEventActive()
 				end
 
 				if orchestratorMode == "Steal Idle" then
-					if not tbl5.IsEventActive() then
+					if not scrambleManager.IsEventActive() then
 						return false
 					end
 					local value = farmState and farmState.GetCarryState and select(1, farmState.GetCarryState())
@@ -11053,7 +10965,7 @@ local function fn2()
 				return false
 			end
 
-			local function fn34(arg, arg2)
+			local function matchesSelectedItem(arg, arg2)
 				if not arg2 or #arg2 == 0 then
 					return false
 				end
@@ -11102,29 +11014,29 @@ local function fn2()
 				return false
 			end
 
-			tbl5.StepAutoShop = function(arg)
+			scrambleManager.StepAutoShop = function(arg)
 				local flag = not arg
 				if flag and not enabled["Auto Buy Scramble Shop"] then
 					return
 				end
 				local now = os.clock()
-				if flag and now - tbl5.LastShopBuyAt < 2 then
+				if flag and now - scrambleManager.LastShopBuyAt < 2 then
 					return
 				end
-				tbl5.LastShopBuyAt = now
-				local v7 = tbl5.GetSnapshot(true)
+				scrambleManager.LastShopBuyAt = now
+				local v7 = scrambleManager.GetSnapshot(true)
 				if not v7 or not v7.Shop or not v7.State then
 					return
 				end
-				local n = (v7.State.Samples or 0) - (tbl5.Config.SampleReserve or tbl5.Config.ShopReserve or 0)
+				local n = (v7.State.Samples or 0) - (scrambleManager.Config.SampleReserve or scrambleManager.Config.ShopReserve or 0)
 				if n <= 0 then
 					return
 				end
-				local selectedShopItems = tbl5.Config.SelectedShopItems or {}
+				local selectedShopItems = scrambleManager.Config.SelectedShopItems or {}
 				if #selectedShopItems == 0 then
 					return
 				end
-				local v8 = fn33()
+				local v8 = getScrambleRemotes()
 				if not v8 or not v8.Request then
 					return
 				end
@@ -11132,7 +11044,7 @@ local function fn2()
 				for _, v9 in ipairs(v7.Shop) do
 					local label = v9.Label or v9.Id
 
-					if fn34(v9, selectedShopItems) then
+					if matchesSelectedItem(v9, selectedShopItems) then
 						if v9.Price <= n then
 							local v10 = (v7.State.ShopPurchases or {})[v9.Id]
 
@@ -11148,7 +11060,7 @@ local function fn2()
 										v7.State.ShopSequence = result.Snapshot.State.ShopSequence
 										v7.State.Samples = result.Snapshot.State.Samples
 										v7.State.ShopPurchases = result.Snapshot.State.ShopPurchases
-										tbl5.Snapshot = result.Snapshot
+										scrambleManager.Snapshot = result.Snapshot
 									else
 										v7.State.ShopSequence = (v7.State.ShopSequence or 0) + 1
 									end
@@ -11162,15 +11074,15 @@ local function fn2()
 				end
 			end
 
-			tbl5.StepShop = tbl5.StepAutoShop
+			scrambleManager.StepShop = scrambleManager.StepAutoShop
 
-			tbl5.SafeApproach = function(arg, arg2)
+			scrambleManager.SafeApproach = function(arg, arg2)
 				local character2 = localPlayer.Character
 				if not (character2 and character2:FindFirstChild("HumanoidRootPart")) then
 					return false
 				end
 				local n = math.max(arg2 or 300, 50)
-				local autoSteal = tbl5.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"]
+				local autoSteal = scrambleManager.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"]
 
 				if (steal.IsInSafeZone and steal.IsInSafeZone() or steal.IsInSafeZoneArea and steal.IsInSafeZoneArea()) and steal.GetSafeZone then
 					local v7 = steal.GetSafeZone()
@@ -11183,7 +11095,7 @@ local function fn2()
 				return steal.TweenTo(arg, n, { Owner = "ScrambleDrone", AbortOnStealTarget = autoSteal })
 			end
 
-			local function fn35(scramBat, arg)
+			local function classifyBatTool(scramBat, arg)
 				if not (scramBat and scramBat:IsA("Tool")) then
 					return
 				end
@@ -11204,11 +11116,11 @@ local function fn2()
 				end
 			end
 
-			local function fn36()
+			local function findBatTools()
 				local character2 = localPlayer and localPlayer.Character
 				local backpack = localPlayer and localPlayer:FindFirstChildOfClass("Backpack")
-				local cachedOrigBat = tbl5.CachedOrigBat
-				local cachedScramBat = tbl5.CachedScramBat
+				local cachedOrigBat = scrambleManager.CachedOrigBat
+				local cachedScramBat = scrambleManager.CachedScramBat
 				if cachedOrigBat and cachedOrigBat.Parent and (cachedOrigBat.Parent == character2 or cachedOrigBat.Parent == backpack) and cachedScramBat and cachedScramBat.Parent and (cachedScramBat.Parent == character2 or cachedScramBat.Parent == backpack) then
 					return cachedOrigBat, cachedScramBat
 				end
@@ -11216,23 +11128,23 @@ local function fn2()
 
 				if character2 then
 					for _, child in ipairs(character2:GetChildren()) do
-						fn35(child, tbl6)
+						classifyBatTool(child, tbl6)
 					end
 				end
 
 				if backpack then
 					for _, child in ipairs(backpack:GetChildren()) do
-						fn35(child, tbl6)
+						classifyBatTool(child, tbl6)
 					end
 				end
 
-				tbl5.CachedOrigBat = tbl6.origBat
-				tbl5.CachedScramBat = tbl6.scramBat
+				scrambleManager.CachedOrigBat = tbl6.origBat
+				scrambleManager.CachedScramBat = tbl6.scramBat
 				return tbl6.origBat, tbl6.scramBat
 			end
 
-			tbl5.GetLiveDronePos = function(arg)
-				local snapshot = tbl5.Snapshot
+			scrambleManager.GetLiveDronePos = function(arg)
+				local snapshot = scrambleManager.Snapshot
 				if not snapshot or not snapshot.Drones or not snapshot.Drones.Upserts then
 					return nil
 				end
@@ -11243,7 +11155,7 @@ local function fn2()
 						if n <= 0 then
 							return nil
 						end
-						local position = fn31(upsert.CFrame)
+						local position = parseCFrameValue(upsert.CFrame)
 						position = position and position.Position
 						if position then
 							return position, n
@@ -11255,15 +11167,15 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.SwingBat = function(arg, arg2)
-				local v7, v8 = fn36()
+			scrambleManager.SwingBat = function(arg, arg2)
+				local v7, v8 = findBatTools()
 
-				if tbl5.Config.FastSwitchBat ~= false and v7 ~= nil and v8 ~= nil then
-					local fastSwitchDelay = tbl5.Config.FastSwitchDelay or 40
+				if scrambleManager.Config.FastSwitchBat ~= false and v7 ~= nil and v8 ~= nil then
+					local fastSwitchDelay = scrambleManager.Config.FastSwitchDelay or 40
 					local n = fastSwitchDelay >= 1 and fastSwitchDelay / 1000 or fastSwitchDelay
 					local n2 = math.clamp(n * 0.5, 0.02, 0.04)
-					local flag = tbl5.NextBatType == "Scrambler" and v8 or v7
-					tbl5.NextBatType = flag == v8 and "Original" or "Scrambler"
+					local flag = scrambleManager.NextBatType == "Scrambler" and v8 or v7
+					scrambleManager.NextBatType = flag == v8 and "Original" or "Scrambler"
 
 					if flag.Parent ~= arg then
 						arg2:EquipTool(flag)
@@ -11275,7 +11187,7 @@ local function fn2()
 
 						if flag:GetAttribute("GearName") == "The Scrambler" then
 							local ReplicatedStorage = game:GetService("ReplicatedStorage")
-							local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+							local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 							if remotes and remotes.ToolTrigger and remotes.ToolTrigger.Trigger then
 								remotes.ToolTrigger.Trigger:FireServer(flag)
@@ -11283,7 +11195,7 @@ local function fn2()
 						end
 					end)
 
-					tbl5.LastBatSwing = os.clock()
+					scrambleManager.LastBatSwing = os.clock()
 					task.wait(n)
 				else
 					local v9 = v7 or v8
@@ -11312,25 +11224,25 @@ local function fn2()
 						task.wait(0.03)
 					end
 
-					local batSwingInterval = tbl5.Config.BatSwingInterval or tbl5.Config.SwingInterval or 0.65
+					local batSwingInterval = scrambleManager.Config.BatSwingInterval or scrambleManager.Config.SwingInterval or 0.65
 					local flag
 
 					if v9 then
-						local lastBatSwing = tbl5.LastBatSwing
+						local lastBatSwing = scrambleManager.LastBatSwing
 						flag = os.clock() - lastBatSwing >= batSwingInterval
 					else
 						flag = v9
 					end
 
 					if flag then
-						tbl5.LastBatSwing = os.clock()
+						scrambleManager.LastBatSwing = os.clock()
 
 						pcall(function()
 							v9:Activate()
 
 							if v9:GetAttribute("GearName") == "The Scrambler" then
 								local ReplicatedStorage = game:GetService("ReplicatedStorage")
-								local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+								local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 
 								if remotes and remotes.ToolTrigger and remotes.ToolTrigger.Trigger then
 									remotes.ToolTrigger.Trigger:FireServer(v9)
@@ -11343,49 +11255,49 @@ local function fn2()
 				end
 			end
 
-			tbl5.StepDrones = function()
+			scrambleManager.StepDrones = function()
 				if not enabled["Auto Farm Drones"] then
 					return false
 				end
 
-				if not tbl5.IsEventActive() then
-					tbl5.ReleaseMovement()
+				if not scrambleManager.IsEventActive() then
+					scrambleManager.ReleaseMovement()
 					return false
 				end
 
-				if tbl5.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"] then
+				if scrambleManager.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"] then
 					local value = farmState and farmState.GetCarryState and select(1, farmState.GetCarryState())
 					if steal and (steal.IsStealing or value) then
-						tbl5.ReleaseMovement()
+						scrambleManager.ReleaseMovement()
 						return false
 					end
 
 					if steal and steal.PickTarget and steal.PickTarget() ~= nil then
-						tbl5.ReleaseMovement()
+						scrambleManager.ReleaseMovement()
 						return false
 					end
 				end
 
-				local v7 = tbl5.GetSnapshot()
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 or not v7.Drones or not v7.Drones.Upserts then
-					tbl5.ReleaseMovement()
+					scrambleManager.ReleaseMovement()
 					return false
 				end
 				local character2 = localPlayer.Character
 				local humanoidRootPart2 = character2 and character2:FindFirstChild("HumanoidRootPart")
 				character2 = character2 and character2:FindFirstChildOfClass("Humanoid")
 				if not humanoidRootPart2 or not character2 or character2.Health <= 0 then
-					tbl5.ReleaseMovement()
+					scrambleManager.ReleaseMovement()
 					return false
 				end
-				local priorityTarget = tbl5.Config.PriorityTarget or "Closest"
+				local priorityTarget = scrambleManager.Config.PriorityTarget or "Closest"
 				local tbl6 = {}
 
 				for _, upsert in ipairs(v7.Drones.Upserts) do
 					local n = tonumber(upsert.Health) or 0
 
 					if n > 0 then
-						local v8, v9 = fn32(upsert.Attributes and upsert.Attributes.ScrambleTier or "ScrapDrone")
+						local v8, v9 = normalizeDroneTier(upsert.Attributes and upsert.Attributes.ScrambleTier or "ScrapDrone")
 						local flag = priorityTarget == "Augmented Only" and v8 ~= "AugmentedDrone"
 						local flag2 = true
 
@@ -11402,7 +11314,7 @@ local function fn2()
 						end
 
 						if flag2 then
-							local position = fn31(upsert.CFrame)
+							local position = parseCFrameValue(upsert.CFrame)
 							position = position and position.Position
 
 							if position then
@@ -11423,20 +11335,20 @@ local function fn2()
 				end
 
 				if #tbl6 == 0 then
-					tbl5.CurrentTargetDrone = nil
-					tbl5.CurrentTargetInfo = "No target drones"
-					tbl5.ReleaseMovement()
+					scrambleManager.CurrentTargetDrone = nil
+					scrambleManager.CurrentTargetInfo = "No target drones"
+					scrambleManager.ReleaseMovement()
 					return false
 				end
 
-				local id = tbl5.CurrentTargetDrone and tbl5.CurrentTargetDrone.Id
+				local id = scrambleManager.CurrentTargetDrone and scrambleManager.CurrentTargetDrone.Id
 				local v8 = nil
 
 				if id then
 					v8 = nil
 
 					for _, v9 in ipairs(tbl6) do
-						if v9.id == tbl5.CurrentTargetDrone.Id then
+						if v9.id == scrambleManager.CurrentTargetDrone.Id then
 							v8 = nil
 
 							if v9.dist <= 18 then
@@ -11499,9 +11411,9 @@ local function fn2()
 				local magnitude = (humanoidRootPart2.Position - v8.pos).Magnitude
 				local tier = v8.tier
 				local hp = v8.hp
-				tbl5.CurrentTargetDrone = v8.drone
-				tbl5.CurrentTargetInfo = string.format("%s (HP: %d) [%.0f studs]", tier, hp, magnitude)
-				if tbl4.Movement and not tbl4.Movement.Claim("ScrambleDrone", 80) then
+				scrambleManager.CurrentTargetDrone = v8.drone
+				scrambleManager.CurrentTargetInfo = string.format("%s (HP: %d) [%.0f studs]", tier, hp, magnitude)
+				if modules.Movement and not modules.Movement.Claim("ScrambleDrone", 80) then
 					return false
 				end
 
@@ -11511,21 +11423,21 @@ local function fn2()
 					end
 				end
 
-				tbl5.IsFarmingDrone = true
-				local attackDistance = tbl5.Config.AttackDistance or 3.5
+				scrambleManager.IsFarmingDrone = true
+				local attackDistance = scrambleManager.Config.AttackDistance or 3.5
 				local id2 = v8.id
 				local now = os.clock()
 
 				while true do
-					if enabled["Auto Farm Drones"] and tbl5.IsEventActive() then
+					if enabled["Auto Farm Drones"] and scrambleManager.IsEventActive() then
 						local character3 = localPlayer.Character
 						local humanoidRootPart3 = character3 and character3:FindFirstChild("HumanoidRootPart")
 						local humanoid2 = character3 and character3:FindFirstChildOfClass("Humanoid")
 
 						if not (not humanoidRootPart3 or not humanoid2 or humanoid2.Health <= 0) then
 							if not (steal and steal.IsNightOrWallClosed and steal.IsNightOrWallClosed()) then
-								if not (tbl5.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"] and steal.PickTarget and steal.PickTarget() ~= nil) then
-									local v9, v10 = tbl5.GetLiveDronePos(id2)
+								if not (scrambleManager.Config.OrchestratorMode == "Steal Idle" and enabled["Auto Steal"] and steal.PickTarget and steal.PickTarget() ~= nil) then
+									local v9, v10 = scrambleManager.GetLiveDronePos(id2)
 
 									if v9 then
 										local v11 = v9
@@ -11533,11 +11445,11 @@ local function fn2()
 										local vector = n.Magnitude < 0.1 and Vector3.new(0, 0, attackDistance) or n.Unit * attackDistance
 										local vector2 = Vector3.new(v11.X + vector.X, v11.Y, v11.Z + vector.Z)
 										local magnitude2 = (humanoidRootPart3.Position - vector2).Magnitude
-										tbl5.CurrentTargetInfo = string.format("%s (HP: %d) [%.0f studs]", tier, v10, magnitude2)
+										scrambleManager.CurrentTargetInfo = string.format("%s (HP: %d) [%.0f studs]", tier, v10, magnitude2)
 
 										if magnitude2 > 5.5 then
 											_G.LastAction = string.format("Scramble: Approaching %s (%.0fm)", tier, magnitude2)
-											tbl5.SafeApproach(vector2, tbl5.Config.TweenSpeed or 300)
+											scrambleManager.SafeApproach(vector2, scrambleManager.Config.TweenSpeed or 300)
 										else
 											_G.LastAction = string.format("Scramble: Attacking %s (HP: %d)", tier, v10)
 
@@ -11555,7 +11467,7 @@ local function fn2()
 												humanoidRootPart3.AssemblyAngularVelocity = Vector3.zero
 											end)
 
-											tbl5.SwingBat(character3, humanoid2)
+											scrambleManager.SwingBat(character3, humanoid2)
 										end
 
 										if os.clock() - now > 12 then
@@ -11576,17 +11488,17 @@ local function fn2()
 				return true
 			end
 
-			tbl5.Step = function()
-				if enabled["Auto Buy Scramble Shop"] and tbl5.StepAutoShop then
-					tbl5.StepAutoShop()
+			scrambleManager.Step = function()
+				if enabled["Auto Buy Scramble Shop"] and scrambleManager.StepAutoShop then
+					scrambleManager.StepAutoShop()
 				end
 
 				if enabled["Auto Farm Drones"] then
-					tbl5.StepDrones()
+					scrambleManager.StepDrones()
 				end
 			end
 
-			local function fn37(name)
+			local function getOrCreateWorkspaceFolder(name)
 				local folder = workspace:FindFirstChild(name)
 
 				if not folder then
@@ -11598,32 +11510,32 @@ local function fn2()
 				return folder
 			end
 
-			tbl5.ClearDroneESP = function()
-				if tbl5.DroneESPFolder then
+			scrambleManager.ClearDroneESP = function()
+				if scrambleManager.DroneESPFolder then
 					pcall(function()
-						tbl5.DroneESPFolder:ClearAllChildren()
+						scrambleManager.DroneESPFolder:ClearAllChildren()
 					end)
 				end
 			end
 
-			tbl5.ClearDropsESP = function()
-				if tbl5.DropsESPFolder then
+			scrambleManager.ClearDropsESP = function()
+				if scrambleManager.DropsESPFolder then
 					pcall(function()
-						tbl5.DropsESPFolder:ClearAllChildren()
+						scrambleManager.DropsESPFolder:ClearAllChildren()
 					end)
 				end
 			end
 
-			tbl5.UpdateDroneESP = function()
+			scrambleManager.UpdateDroneESP = function()
 				if not enabled["ESP Scramble Drones"] then
-					tbl5.ClearDroneESP()
+					scrambleManager.ClearDroneESP()
 					return
 				end
-				tbl5.DroneESPFolder = fn37("NoLag_DroneESP")
-				local droneESPFolder = tbl5.DroneESPFolder
-				local v7 = tbl5.GetSnapshot()
+				scrambleManager.DroneESPFolder = getOrCreateWorkspaceFolder("NoLag_DroneESP")
+				local droneESPFolder = scrambleManager.DroneESPFolder
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 or not v7.Drones or not v7.Drones.Upserts then
-					tbl5.ClearDroneESP()
+					scrambleManager.ClearDroneESP()
 					return
 				end
 				local character2 = localPlayer.Character
@@ -11635,12 +11547,12 @@ local function fn2()
 					local n = tonumber(upsert.Health) or 0
 
 					if n > 0 then
-						local v8 = fn31(upsert.CFrame)
+						local v8 = parseCFrameValue(upsert.CFrame)
 
 						if v8 then
 							local name = tostring(upsert.Id or "DroneESP")
 							tbl6[name] = true
-							local v9 = fn32(upsert.Attributes and upsert.Attributes.ScrambleTier or "ScrapDrone")
+							local v9 = normalizeDroneTier(upsert.Attributes and upsert.Attributes.ScrambleTier or "ScrapDrone")
 							local magnitude = character2 and (character2 - v8.Position).Magnitude or 0
 							local v10 = droneESPFolder:FindFirstChild(name)
 							local part, textLabel
@@ -11701,16 +11613,16 @@ local function fn2()
 				end
 			end
 
-			tbl5.UpdateDropsESP = function()
+			scrambleManager.UpdateDropsESP = function()
 				if not enabled["ESP Scramble Drops"] then
-					tbl5.ClearDropsESP()
+					scrambleManager.ClearDropsESP()
 					return
 				end
-				tbl5.DropsESPFolder = fn37("NoLag_DropsESP")
-				local dropsESPFolder = tbl5.DropsESPFolder
-				local v7 = tbl5.GetSnapshot()
+				scrambleManager.DropsESPFolder = getOrCreateWorkspaceFolder("NoLag_DropsESP")
+				local dropsESPFolder = scrambleManager.DropsESPFolder
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 or not v7.Drops then
-					tbl5.ClearDropsESP()
+					scrambleManager.ClearDropsESP()
 					return
 				end
 				local tbl6 = {}
@@ -11781,8 +11693,8 @@ local function fn2()
 				end
 			end
 
-			tbl5.GetTelemetryText = function()
-				local v7 = tbl5.GetSnapshot()
+			scrambleManager.GetTelemetryText = function()
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 then
 					return "Loading Dr. Scramble Outbreak telemetry..."
 				end
@@ -11825,14 +11737,14 @@ local function fn2()
 					end
 				end
 
-				local priorityTarget = tbl5.Config.PriorityTarget or "Closest"
+				local priorityTarget = scrambleManager.Config.PriorityTarget or "Closest"
 				local tbl6 = {}
 				local str2 = string.format("<b>Samples Balance:</b> <font color=\"#00FF88\">%s</font>", tostring(samples))
 				local str3 = string.format("<b>Event Window:</b> %s", str)
 				local str4 = string.format("<b>Active Drones:</b> <font color=\"#6495ED\">%d</font> (Aug: %d, React: %d, Scrap: %d)", n, n3, n2, n4)
 				local str5 = string.format("<b>Priority Target:</b> <font color=\"#FFD83D\">%s</font>", tostring(priorityTarget))
 				local format = string.format
-				local currentTargetInfo = tbl5.CurrentTargetInfo or "None"
+				local currentTargetInfo = scrambleManager.CurrentTargetInfo or "None"
 				local v8 = table.pack(format("<b>Target Drone:</b> %s", currentTargetInfo))
 				tbl6[1] = str2
 				tbl6[2] = str3
@@ -11847,15 +11759,15 @@ local function fn2()
 				return table.concat(tbl6, "\n")
 			end
 
-			tbl5.GetShopTelemetryText = function()
-				local v7 = tbl5.GetSnapshot()
+			scrambleManager.GetShopTelemetryText = function()
+				local v7 = scrambleManager.GetSnapshot()
 				if not v7 or not v7.Shop then
 					return "Loading Shop data..."
 				end
 				local samples = v7.State and v7.State.Samples or 0
 				local tbl6 = {}
 				local str = string.format("<b>Available Samples:</b> <font color=\"#00FF88\">%s</font>", tostring(samples))
-				local str2 = string.format("<b>Reserve Samples:</b> %s", tostring(tbl5.Config.ShopReserve or 0))
+				local str2 = string.format("<b>Reserve Samples:</b> %s", tostring(scrambleManager.Config.ShopReserve or 0))
 				tbl6[1] = str
 				tbl6[2] = str2
 				tbl6[3] = ""
@@ -11870,8 +11782,8 @@ local function fn2()
 
 			task.spawn(function()
 				while true do
-					if enabled["Auto Farm Drones"] and tbl5.IsFarmingDrone then
-						pcall(tbl5.GetSnapshot, true)
+					if enabled["Auto Farm Drones"] and scrambleManager.IsFarmingDrone then
+						pcall(scrambleManager.GetSnapshot, true)
 						task.wait(0.2)
 						continue
 					end
@@ -11880,13 +11792,13 @@ local function fn2()
 				end
 			end)
 
-			return tbl5
+			return scrambleManager
 		end
 
-		tbl4.Scramble = fn30()
+		modules.Scramble = createScrambleModule()
 
-		local function fn31()
-			local tbl5 = {
+		local function createRiftModule()
+			local riftManager = {
 				State = nil,
 				LastStateFetch = 0,
 				LastSacrificeAt = 0,
@@ -11902,9 +11814,9 @@ local function fn2()
 				LastNeededFetch = 0,
 			}
 
-			local function fn32(arg, arg2)
-				if fn4 then
-					fn4(arg2, arg)
+			local function notifyRift(arg, arg2)
+				if notifyDeveloper then
+					notifyDeveloper(arg2, arg)
 				elseif Utils and Utils.Notify then
 					Utils.Notify(arg, arg2, 4)
 				end
@@ -11913,7 +11825,7 @@ local function fn2()
 			local tbl6 = {}
 
 			pcall(function()
-				local assets = tbl4.Game and tbl4.Game.Assets
+				local assets = modules.Game and modules.Game.Assets
 				local Assets
 
 				if assets then
@@ -11931,9 +11843,9 @@ local function fn2()
 				end
 			end)
 
-			local function fn33()
+			local function getRiftRemotes()
 				local ReplicatedStorage = game:GetService("ReplicatedStorage")
-				local remotes = tbl4.Game and tbl4.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
+				local remotes = modules.Game and modules.Game.Remotes or ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("Remotes") and require(ReplicatedStorage.Shared.Remotes)
 				if remotes and remotes.Rift then
 					return remotes.Rift
 				end
@@ -11952,12 +11864,12 @@ local function fn2()
 				return nil
 			end
 
-			tbl5.GetState = function(arg)
+			riftManager.GetState = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.State and now - tbl5.LastStateFetch < 2 then
-					return tbl5.State
+				if not arg and riftManager.State and now - riftManager.LastStateFetch < 2 then
+					return riftManager.State
 				end
-				local v7 = fn33()
+				local v7 = getRiftRemotes()
 
 				if v7 and v7.AskState then
 					local ok, state = pcall(function()
@@ -11965,26 +11877,26 @@ local function fn2()
 					end)
 
 					if ok and type(state) == "table" then
-						tbl5.State = state
-						tbl5.LastStateFetch = now
+						riftManager.State = state
+						riftManager.LastStateFetch = now
 						return state
 					end
 				end
 
-				return tbl5.State
+				return riftManager.State
 			end
 
-			tbl5.IsUnlocked = function()
-				local v7 = tbl5.GetState()
+			riftManager.IsUnlocked = function()
+				local v7 = riftManager.GetState()
 				return v7 and v7.Unlocked == true
 			end
 
-			tbl5.IsBannerDesired = function()
-				local desiredBanners = tbl5.Config and tbl5.Config.DesiredBanners or cached and cached.Settings and cached.Settings.DesiredRiftBanners or {}
+			riftManager.IsBannerDesired = function()
+				local desiredBanners = riftManager.Config and riftManager.Config.DesiredBanners or cached and cached.Settings and cached.Settings.DesiredRiftBanners or {}
 				if not desiredBanners or #desiredBanners == 0 then
 					return true
 				end
-				local v7 = tbl5.GetState()
+				local v7 = riftManager.GetState()
 				if not v7 then
 					return false
 				end
@@ -12001,18 +11913,18 @@ local function fn2()
 				return false
 			end
 
-			tbl5.InvalidateCache = function()
-				tbl5.CachedPets = nil
-				tbl5.LastPetsFetch = 0
-				tbl5.CachedUnplacedEggs = nil
-				tbl5.CachedPlacedEggs = nil
-				tbl5.LastEggsFetch = 0
-				tbl5.CachedNeededEggCategories = nil
-				tbl5.LastNeededFetch = 0
+			riftManager.InvalidateCache = function()
+				riftManager.CachedPets = nil
+				riftManager.LastPetsFetch = 0
+				riftManager.CachedUnplacedEggs = nil
+				riftManager.CachedPlacedEggs = nil
+				riftManager.LastEggsFetch = 0
+				riftManager.CachedNeededEggCategories = nil
+				riftManager.LastNeededFetch = 0
 			end
 
-			local function fn34()
-				local getSave = tbl4.Game and tbl4.Game.GetSave and tbl4.Game.GetSave()
+			local function getRiftSaveData()
+				local getSave = modules.Game and modules.Game.GetSave and modules.Game.GetSave()
 
 				if not getSave then
 					pcall(function()
@@ -12030,12 +11942,12 @@ local function fn2()
 				return {}
 			end
 
-			tbl5.GetAllInventoryPets = function(arg)
+			riftManager.GetAllInventoryPets = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.CachedPets and now - tbl5.LastPetsFetch < 0.75 then
-					return tbl5.CachedPets
+				if not arg and riftManager.CachedPets and now - riftManager.LastPetsFetch < 0.75 then
+					return riftManager.CachedPets
 				end
-				local v7 = fn34()
+				local v7 = getRiftSaveData()
 				local cachedPets = {}
 				local tbl7 = {}
 
@@ -12085,7 +11997,7 @@ local function fn2()
 					end
 				end
 
-				local function fn35(arg2)
+				local function collectPetTool(arg2)
 					if not (arg2 and arg2:IsA("Tool")) then
 						return
 					end
@@ -12122,27 +12034,27 @@ local function fn2()
 
 				if localPlayer2 and localPlayer2.Character then
 					for _, child in ipairs(localPlayer2.Character:GetChildren()) do
-						fn35(child)
+						collectPetTool(child)
 					end
 				end
 
 				if localPlayer2 and localPlayer2:FindFirstChild("Backpack") then
 					for _, child in ipairs(localPlayer2.Backpack:GetChildren()) do
-						fn35(child)
+						collectPetTool(child)
 					end
 				end
 
-				tbl5.CachedPets = cachedPets
-				tbl5.LastPetsFetch = now
+				riftManager.CachedPets = cachedPets
+				riftManager.LastPetsFetch = now
 				return cachedPets
 			end
 
-			tbl5.GetAllEggs = function(arg)
+			riftManager.GetAllEggs = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.CachedUnplacedEggs and now - tbl5.LastEggsFetch < 0.75 then
-					return tbl5.CachedUnplacedEggs, tbl5.CachedPlacedEggs
+				if not arg and riftManager.CachedUnplacedEggs and now - riftManager.LastEggsFetch < 0.75 then
+					return riftManager.CachedUnplacedEggs, riftManager.CachedPlacedEggs
 				end
-				local v7 = fn34()
+				local v7 = getRiftSaveData()
 				local cachedUnplacedEggs = {}
 				local cachedPlacedEggs = {}
 
@@ -12183,19 +12095,19 @@ local function fn2()
 					end
 				end
 
-				tbl5.CachedUnplacedEggs = cachedUnplacedEggs
-				tbl5.CachedPlacedEggs = cachedPlacedEggs
-				tbl5.LastEggsFetch = now
+				riftManager.CachedUnplacedEggs = cachedUnplacedEggs
+				riftManager.CachedPlacedEggs = cachedPlacedEggs
+				riftManager.LastEggsFetch = now
 				return cachedUnplacedEggs, cachedPlacedEggs
 			end
 
-			tbl5.GetMissingRequirements = function()
-				local v7 = tbl5.GetState()
+			riftManager.GetMissingRequirements = function()
+				local v7 = riftManager.GetState()
 				if not v7 or not v7.Requirements then
 					return {}
 				end
 				local tbl7 = {}
-				local v8 = tbl5.GetAllInventoryPets()
+				local v8 = riftManager.GetAllInventoryPets()
 
 				for _, requirement in ipairs(v7.Requirements) do
 					local str = tostring(type(requirement) == "table" and (requirement.Category or requirement.Id or requirement.Name) or requirement)
@@ -12216,12 +12128,12 @@ local function fn2()
 				return tbl7
 			end
 
-			tbl5.GetNeededRecipeEggCategories = function(arg)
+			riftManager.GetNeededRecipeEggCategories = function(arg)
 				local now = os.clock()
-				if not arg and tbl5.CachedNeededEggCategories and now - tbl5.LastNeededFetch < 0.5 then
-					return tbl5.CachedNeededEggCategories
+				if not arg and riftManager.CachedNeededEggCategories and now - riftManager.LastNeededFetch < 0.5 then
+					return riftManager.CachedNeededEggCategories
 				end
-				local v7 = tbl5.GetState()
+				local v7 = riftManager.GetState()
 				if not v7 or not v7.Requirements then
 					return {}
 				end
@@ -12232,7 +12144,7 @@ local function fn2()
 					tbl7[str] = (tbl7[str] or 0) + 1
 				end
 
-				local getAllInventoryPets = tbl5.GetAllInventoryPets and tbl5.GetAllInventoryPets() or {}
+				local getAllInventoryPets = riftManager.GetAllInventoryPets and riftManager.GetAllInventoryPets() or {}
 
 				for _, getAllInventoryPet in ipairs(getAllInventoryPets) do
 					local category = getAllInventoryPet.Category or getAllInventoryPet.DisplayName
@@ -12247,8 +12159,8 @@ local function fn2()
 				local tbl8 = {}
 				local tbl9 = {}
 
-				if tbl5.GetAllEggs then
-					tbl8, tbl9 = tbl5.GetAllEggs()
+				if riftManager.GetAllEggs then
+					tbl8, tbl9 = riftManager.GetAllEggs()
 				end
 
 				local v8 = ipairs
@@ -12297,16 +12209,16 @@ local function fn2()
 					end
 				end
 
-				tbl5.CachedNeededEggCategories = cachedNeededEggCategories
-				tbl5.LastNeededFetch = now
+				riftManager.CachedNeededEggCategories = cachedNeededEggCategories
+				riftManager.LastNeededFetch = now
 				return cachedNeededEggCategories
 			end
 
-			tbl5.FindEligiblePetsForRecipe = function(arg)
+			riftManager.FindEligiblePetsForRecipe = function(arg)
 				if not arg or #arg == 0 then
 					return nil
 				end
-				local v7 = tbl5.GetAllInventoryPets()
+				local v7 = riftManager.GetAllInventoryPets()
 				local tbl7 = {}
 				local tbl8 = {}
 
@@ -12342,21 +12254,21 @@ local function fn2()
 				return #tbl8 == #arg and tbl8 or nil
 			end
 
-			tbl5.StepSacrifice = function(arg)
+			riftManager.StepSacrifice = function(arg)
 				local flag = not arg
 				if flag and not enabled["Auto Rift Sacrifice"] then
 					return
 				end
 
-				if flag and tbl5.IsBannerDesired and not tbl5.IsBannerDesired() then
+				if flag and riftManager.IsBannerDesired and not riftManager.IsBannerDesired() then
 					return
 				end
 				local now = os.clock()
-				if flag and now - tbl5.LastSacrificeAt < 2 then
+				if flag and now - riftManager.LastSacrificeAt < 2 then
 					return
 				end
-				tbl5.LastSacrificeAt = now
-				local v7 = tbl5.GetState(arg)
+				riftManager.LastSacrificeAt = now
+				local v7 = riftManager.GetState(arg)
 				if not v7 then
 					return
 				end
@@ -12364,10 +12276,10 @@ local function fn2()
 				if #requirements == 0 then
 					return
 				end
-				local v8 = tbl5.FindEligiblePetsForRecipe(requirements)
+				local v8 = riftManager.FindEligiblePetsForRecipe(requirements)
 
 				if v8 and #v8 == #requirements then
-					local v9 = fn33()
+					local v9 = getRiftRemotes()
 
 					if v9 and v9.AskTradeIn then
 						_G.LastAction = "Rift: Trading in sacrifice pets..."
@@ -12385,9 +12297,9 @@ local function fn2()
 								end)
 							end
 
-							tbl5.GetState(true)
-							tbl5.InvalidateCache()
-							fn32("The Rift", "Trade-In successful! Rift Egg received.")
+							riftManager.GetState(true)
+							riftManager.InvalidateCache()
+							notifyRift("The Rift", "Trade-In successful! Rift Egg received.")
 							_G.LastAction = "Rift: Sacrifice Successful! Egg received."
 							return true
 						end
@@ -12395,21 +12307,21 @@ local function fn2()
 				end
 			end
 
-			tbl5.StepReroll = function(arg)
+			riftManager.StepReroll = function(arg)
 				local flag = not arg
 				if flag and not enabled["Auto Reroll Rift Recipe"] then
 					return
 				end
 
-				if flag and tbl5.IsBannerDesired and not tbl5.IsBannerDesired() then
+				if flag and riftManager.IsBannerDesired and not riftManager.IsBannerDesired() then
 					return
 				end
 				local now = os.clock()
-				if flag and now - tbl5.LastRerollAt < 2.5 then
+				if flag and now - riftManager.LastRerollAt < 2.5 then
 					return
 				end
-				tbl5.LastRerollAt = now
-				local v7 = tbl5.GetState()
+				riftManager.LastRerollAt = now
+				local v7 = riftManager.GetState()
 				local flag2 = not v7
 				local flag3
 
@@ -12422,10 +12334,10 @@ local function fn2()
 				if flag3 then
 					return
 				end
-				local v8 = tbl5.FindEligiblePetsForRecipe(v7.Requirements or {})
+				local v8 = riftManager.FindEligiblePetsForRecipe(v7.Requirements or {})
 
 				if arg or not v8 then
-					local v9 = fn33()
+					local v9 = getRiftRemotes()
 
 					if v9 and v9.AskRefresh then
 						_G.LastAction = "Rift: Rerolling sacrifice recipe..."
@@ -12436,30 +12348,30 @@ local function fn2()
 
 						if ok and result == true then
 							task.wait(0.4)
-							tbl5.GetState(true)
-							tbl5.InvalidateCache()
-							local v10 = tbl5.GetState()
-							fn32("The Rift", string.format("Recipe rerolled! (%d free refreshes left)", v10 and v10.FreeRefreshesRemaining or 0))
+							riftManager.GetState(true)
+							riftManager.InvalidateCache()
+							local v10 = riftManager.GetState()
+							notifyRift("The Rift", string.format("Recipe rerolled! (%d free refreshes left)", v10 and v10.FreeRefreshesRemaining or 0))
 							return true
 						end
 					end
 				end
 			end
 
-			tbl5.Step = function()
+			riftManager.Step = function()
 				if enabled["Auto Rift Sacrifice"] then
-					if tbl5.StepSacrifice() then
+					if riftManager.StepSacrifice() then
 						return
 					end
 				end
 
 				if enabled["Auto Reroll Rift Recipe"] then
-					tbl5.StepReroll()
+					riftManager.StepReroll()
 				end
 			end
 
-			tbl5.GetTelemetryText = function()
-				local v7 = tbl5.GetState()
+			riftManager.GetTelemetryText = function()
+				local v7 = riftManager.GetState()
 				if not v7 then
 					return "Loading The Rift telemetry..."
 				end
@@ -12470,9 +12382,9 @@ local function fn2()
 				local freeRefreshesRemaining = v7.FreeRefreshesRemaining or 0
 				local str2 = string.format("%d / %d", v7.PityCount or 0, v7.PityThreshold or 50)
 				local requirements = v7.Requirements or {}
-				local str3 = tbl5.FindEligiblePetsForRecipe(requirements)
-				local v8 = tbl5.GetAllInventoryPets()
-				local v9, v10 = tbl5.GetAllEggs()
+				local str3 = riftManager.FindEligiblePetsForRecipe(requirements)
+				local v8 = riftManager.GetAllInventoryPets()
+				local v9, v10 = riftManager.GetAllEggs()
 				local tbl7 = {}
 
 				for _, requirement in ipairs(requirements) do
@@ -12532,11 +12444,11 @@ local function fn2()
 
 				local flag = true
 
-				if tbl5.IsBannerDesired then
-					flag = tbl5.IsBannerDesired()
+				if riftManager.IsBannerDesired then
+					flag = riftManager.IsBannerDesired()
 				end
 
-				local desiredBanners = tbl5.Config and tbl5.Config.DesiredBanners or cached and cached.Settings and cached.Settings.DesiredRiftBanners or {}
+				local desiredBanners = riftManager.Config and riftManager.Config.DesiredBanners or cached and cached.Settings and cached.Settings.DesiredRiftBanners or {}
 				local str4 = ""
 
 				if #desiredBanners > 0 then
@@ -12573,15 +12485,15 @@ local function fn2()
 				return table.concat(tbl8, "\n")
 			end
 
-			return tbl5
+			return riftManager
 		end
 
-		tbl4.Rift = fn31()
-		return tbl4
+		modules.Rift = createRiftModule()
+		return modules
 	end
 
-	module.Modules = fn7()
-	local tbl4 = {}
+	module.Modules = createModules()
+	local controller = {}
 	local modules = module.Modules
 	local utils = modules.Utils
 	local misc = modules.Misc
@@ -12608,7 +12520,7 @@ local function fn2()
 	local scramble = modules.Scramble
 	local rift = modules.Rift
 
-	local function fn8()
+	local function createOrchestrator()
 		return {
 			LastPhysicalTick = 0,
 			Tick = function()
@@ -12759,10 +12671,10 @@ local function fn2()
 		}
 	end
 
-	modules.Orchestrator = fn8()
+	modules.Orchestrator = createOrchestrator()
 	local orchestrator = modules.Orchestrator
 
-	tbl4.LoadLibrary = function()
+	controller.LoadLibrary = function()
 		local v7 = shx:CreateWindow({
 			Title = "Speed Hub X | Steal An Egg 1.2.2 | discord.gg/speedhubx",
 			Description = "",
@@ -12816,7 +12728,7 @@ local function fn2()
 
 		funcs:Button(v8, "Refresh Pets", "Recalculate pet predictions & growth timers now", function()
 			petPredictor.UpdateParagraph()
-			fn4("Pet predictions refreshed!", "Pet Predictor")
+			notifyDeveloper("Pet predictions refreshed!", "Pet Predictor")
 		end)
 
 		task.spawn(function()
@@ -12829,7 +12741,7 @@ local function fn2()
 
 		funcs:Button(v9, "Refresh Fuse Predictor", "Recalculate fuse machine odds & countdown now", function()
 			fusePredictor.UpdateParagraph()
-			fn4("Fuse predictor updated!", "Fuse Predictor")
+			notifyDeveloper("Fuse predictor updated!", "Fuse Predictor")
 		end)
 
 		task.spawn(function()
@@ -12906,4 +12818,1889 @@ local function fn2()
 		local tbl7 = {}
 
 		pcall(function()
-			local ok, result = pcall(require, replicatedStorage.Data.Assets
+			local ok, result = pcall(require, replicatedStorage.Data.Assets)
+
+			if not (ok and result) then
+				local ok2
+				ok2, result = pcall(require, replicatedStorage.Directory.Assets)
+
+				if not (ok2 and result) then
+					result = modules.Game and modules.Game.Assets
+				end
+			end
+
+			local directory = result and result.Directory or type(result) == "table" and result or {}
+
+			if next(directory) then
+				local tbl8 = {}
+
+				for k, v11 in pairs(directory) do
+					if type(v11) == "table" then
+						local rarity = v11.Rarity
+						local displayName
+
+						if rarity then
+							displayName = rarity.DisplayName or rarity.Name
+						else
+							displayName = rarity
+						end
+
+						displayName = displayName or "Common"
+						local rarityNumber = rarity and rarity.RarityNumber or 1
+
+						table.insert(tbl8, {
+							formatted = string.format("%s [%s]", v11.DisplayName or v11.Name or k, displayName),
+							rNum = rarityNumber,
+							name = v11.DisplayName or v11.Name or k,
+						})
+					end
+				end
+
+				table.sort(tbl8, function(arg, arg2)
+					if arg.rNum == arg2.rNum then
+						return arg.name < arg2.name
+					end
+					return arg.rNum < arg2.rNum
+				end)
+
+				for _, v11 in ipairs(tbl8) do
+					table.insert(tbl7, v11.formatted)
+				end
+			end
+		end)
+
+		if #tbl7 == 0 then
+			tbl7 = {
+				"Chicken [Common]",
+				"Dog [Common]",
+				"Duckling [Common]",
+				"Frog [Common]",
+				"Jerboa [Common]",
+				"Bird [Uncommon]",
+				"Catfish [Uncommon]",
+				"Fennec [Uncommon]",
+				"Burrowing Owl [Rare]",
+				"Camel [Rare]",
+				"Chimpanzee [Rare]",
+				"Dodo [Rare]",
+				"Lava Gecko [Rare]",
+				"Parrotfish [Rare]",
+				"Penguin [Rare]",
+				"Raccoon [Rare]",
+				"Toucan [Rare]",
+				"Tung Tung Sahur [Rare]",
+				"Turtle [Rare]",
+				"Bananita Dolphinita [Epic]",
+				"Bear [Epic]",
+				"Centapede [Epic]",
+				"Crane [Epic]",
+				"Crocodile [Epic]",
+				"Fox [Epic]",
+				"Lava frog [Epic]",
+				"Swan [Epic]",
+				"Swordfish [Epic]",
+				"Tob Tobi Tob Tob [Epic]",
+				"Trulimero Trulicina [Epic]",
+				"Walrus [Epic]",
+				"Axolotl [Legendary]",
+				"Baby Aurora Dragon [Legendary]",
+				"Brr Brr Patapim [Legendary]",
+				"Cosmic Gecko [Legendary]",
+				"Crustacia [Legendary]",
+				"Flaming Bull [Legendary]",
+				"Gorilla [Legendary]",
+				"Lava Iguana [Legendary]",
+				"Mecha Scorpio [Legendary]",
+				"Orangutini Ananassini [Legendary]",
+				"Polar Bear [Legendary]",
+				"Pterodactyl [Legendary]",
+				"Salamander [Legendary]",
+				"Scorpio [Legendary]",
+				"Shark [Legendary]",
+				"Snake [Legendary]",
+				"Spideron [Legendary]",
+				"Ankylosaurus [Mythic]",
+				"Belula Beluga [Mythic]",
+				"Bladehide [Mythic]",
+				"Chillin Chilli [Mythic]",
+				"Cosmic Gorilla [Mythic]",
+				"Froggo [Mythic]",
+				"Mammoth [Mythic]",
+				"Mecha Froggo [Mythic]",
+				"Orca [Mythic]",
+				"Red Panda [Mythic]",
+				"Sabertooth Tiger [Mythic]",
+				"Sand Spider [Mythic]",
+				"Scorpion [Mythic]",
+				"Shadow Dragon [Mythic]",
+				"Spider [Mythic]",
+				"Tiger [Mythic]",
+				"Beluga Whale [Cosmic]",
+				"Bronto [Cosmic]",
+				"Crawler [Cosmic]",
+				"Demon Imp [Cosmic]",
+				"Drilla [Cosmic]",
+				"Hellhound [Cosmic]",
+				"King Mammoth [Cosmic]",
+				"Koi [Cosmic]",
+				"La Vacca Saturno Saturnita [Cosmic]",
+				"Leviathan [Cosmic]",
+				"Mangolini Parrochini [Cosmic]",
+				"Mantaris [Cosmic]",
+				"Mecha Crawler [Cosmic]",
+				"Rhinotaur [Cosmic]",
+				"Royal Sphinx [Cosmic]",
+				"Snowy Owl [Cosmic]",
+				"Triceratops [Cosmic]",
+				"Whale Shark [Cosmic]",
+				"Bombo Croco [Secret]",
+				"Cerberus [Secret]",
+				"Cosmic Dragon [Secret]",
+				"Cosmic Skeleton Boss [Secret]",
+				"Crocodon [Secret]",
+				"Ember Dragon [Secret]",
+				"Gargoyle [Secret]",
+				"King Snake [Secret]",
+				"Kraken [Secret]",
+				"Mecha Crocodon [Secret]",
+				"Minotaur [Secret]",
+				"Mutant Shark [Secret]",
+				"Scorched Dragon [Secret]",
+				"Stag [Secret]",
+				"TRex [Secret]",
+				"Tralaledon [Secret]",
+				"Yeti [Secret]",
+				"Balrog [Eternal]",
+				"El Maja [Eternal]",
+				"Eternal Lunar Dragon [Eternal]",
+				"Gorilla King [Eternal]",
+				"Ice Dragon [Eternal]",
+				"Krakenoid [Eternal]",
+				"Lava Dragon [Eternal]",
+				"Mecha Krakenoid [Eternal]",
+				"Mosasaurus [Eternal]",
+				"Oni Tiger [Eternal]",
+				"Phoenix [Eternal]",
+				"Strawberry Elephant [Eternal]",
+				"Void Dragon [Eternal]",
+				"Archdemon Dragon [Divine]",
+				"Dreadscale [Divine]",
+				"Kitsune [Divine]",
+				"Mecha Dreadscale [Divine]",
+				"Nightflame [Divine]",
+				"Unicorn [Divine]",
+			}
+		end
+
+		funcs:Dropdown(v10, "Target Specific Eggs", "Target only selected eggs (Empty = All)", true, tbl7, {}, true, function(specificEggFilters)
+			steal.SpecificEggFilters = specificEggFilters or {}
+
+			if steal.RebuildSpecificEggLookup then
+				steal.RebuildSpecificEggLookup()
+			end
+		end)
+
+		funcs:Dropdown(v10, "Steal Priority", "Select target egg priority when stealing", false, { "Best Rarity", "Best Weight", "Mutation", "Highest Money/Sec", "Lowest Money/Sec" }, { "Best Rarity" }, true, function(priority)
+			steal.Priority = priority or "Best Rarity"
+		end)
+
+		funcs:Toggle(v10, "Prioritize Rift Recipe Eggs", "Prioritize eggs needed for active Rift recipe, but ignore eggs already in backpack, pen, or pet inventory", false, true, function(arg)
+			enabled["Prioritize Rift Recipe Eggs"] = arg
+			enabled["Prioritize Rift Egg"] = arg
+		end)
+
+		v10:AddSeperator({ " - [ Movement & Speed ] - " })
+
+		funcs:Textbox(v10, "Tween Speed", "Speed of linear tween movement (Default: 350 studs/s)", tostring(steal.Speed or 350), true, function(arg)
+			local speed = tonumber(arg)
+
+			if speed and speed >= 50 and speed <= 1000 then
+				steal.Speed = speed
+			else
+				steal.Speed = 350
+			end
+		end)
+
+		funcs:Textbox(v10, "Steal Timeout", "Main egg grab timeout in seconds (Default: 2.5s)", tostring(steal.Timeout or 2.5), true, function(arg)
+			local timeout = tonumber(arg)
+
+			if timeout and timeout > 0 then
+				steal.Timeout = timeout
+			else
+				steal.Timeout = 2.5
+			end
+		end)
+
+		funcs:Toggle(v10, "Run Animation", "Play natural running animation matching tween speed", true, true, function(arg)
+			enabled["Run Animation"] = arg
+
+			if not arg then
+				steal.StopRunAnimation()
+			end
+		end)
+
+		v10:AddSeperator({ " - [ Misc ] - " })
+
+		stored.StateUpdate["Anti Knockback / Ragdoll"] = funcs:Toggle(v10, "Anti Knockback / Ragdoll", "", false, true, function(arg)
+			enabled["Anti Knockback / Ragdoll"] = arg
+			misc.SetAntiKnockback(arg)
+		end)
+
+		funcs:Toggle(v10, "Auto Pick Dropped Egg", "Instantly re-grab the egg if a guard knocks it out of your hands (best paired with Anti Knockback / Ragdoll)", false, true, function(arg)
+			enabled["Auto Pick Dropped Egg"] = arg
+		end)
+
+		funcs:Toggle(v10, "Instant Prompt", "", false, true, function(arg)
+			enabled["Instant Prompt"] = arg
+
+			if arg then
+				pcall(function()
+					for _, descendant in ipairs(workspace:GetDescendants()) do
+						if descendant:IsA("ProximityPrompt") then
+							descendant.HoldDuration = 0
+						end
+					end
+				end)
+			end
+		end)
+
+		local v11 = tbl5.Farm:AddSection("Automation Place Egg")
+		v11:AddSeperator({ " - [ Pen Placement ] - " })
+
+		funcs:Toggle(v11, "Auto Place Egg", "Place all unplaced eggs into the pen", false, true, function(arg)
+			enabled["Auto Place Egg"] = arg
+
+			if not arg then
+				movement.Release("PlaceEgg")
+				placeEgg.PendingUids = {}
+			end
+		end)
+
+		funcs:Dropdown(v11, "Place Egg Rule", "Select condition for placing eggs into pen", false, { "Egg Inventory Full", "After Steal", "Steal Idle" }, { "Steal Idle" }, true, function(rule)
+			placeEgg.Rule = rule or "Steal Idle"
+		end)
+
+		funcs:Dropdown(v11, "Place Egg Priority", "", false, { "Choose Any Egg", "Highest KG", "Lowest KG", "Highest Money/Sec", "Lowest Money/Sec" }, { "Choose Any Egg" }, true, function(selectionMode)
+			placeEgg.SelectionMode = selectionMode or "Choose Any Egg"
+		end)
+
+		funcs:Textbox(v11, "Max Placed Eggs", "Maximum eggs to place into pen (Default: 30)", tostring(placeEgg.MaxPlaced or 30), true, function(arg)
+			placeEgg.MaxPlaced = tonumber(arg) or 30
+		end)
+
+		local v12 = tbl5.Farm:AddSection("Automation Treadmill")
+		v12:AddSeperator({ " - [ Treadmill Automation ] - " })
+
+		funcs:Toggle(v12, "Auto Treadmill", "Train on treadmill for Speed Power", false, true, function(arg)
+			enabled["Auto Treadmill"] = arg
+
+			if not arg then
+				treadmill.ExitToSafeZone()
+			end
+		end)
+
+		funcs:Button(v12, "Exit From Treadmill", "Clear treadmill effects & jump off", function()
+			treadmill.ExitToSafeZone()
+			notifyDeveloper("Exited from treadmill & effects cleared!", "Treadmill")
+		end)
+
+		local v13 = tbl5.Farm:AddSection("Automation Hatch & Equip")
+
+		funcs:Toggle(v13, "Auto Hatch", "Automatically hatch ready eggs", false, true, function(arg)
+			enabled["Auto Hatch"] = arg
+		end)
+
+		funcs:Toggle(v13, "Auto Equip Best", "Automatically equip best pets", false, true, function(arg)
+			enabled["Auto Equip Best"] = arg
+		end)
+
+		local v14 = tbl5.Farm:AddSection("Automation Favorite")
+		v14:AddSeperator({ " - [ Auto Favorite Pet ] - " })
+
+		funcs:Toggle(v14, "Auto Favorite Pet", "Auto lock pets matching rarity & mutation filters", false, true, function(arg)
+			enabled["Auto Favorite Pet"] = arg
+
+			if arg then
+				task.spawn(favorite.Execute)
+			end
+		end)
+
+		funcs:Dropdown(v14, "Favorite Min Rarity", "Favorite pets with rarity >= this (select Off for mutation only)", false, {
+			"Off",
+			"1 - Common",
+			"2 - Uncommon",
+			"3 - Rare",
+			"4 - Epic",
+			"5 - Legendary",
+			"6 - Mythic",
+			"7 - Cosmic",
+			"8 - Secret",
+			"9 - Eternal",
+			"10 - Divine",
+			"11 - Titan",
+			"12 - Light & Dark",
+		}, { "Off" }, true, function(arg)
+			if type(arg) == "table" then
+				arg = arg[1] or arg.Value or arg.Title or arg.Text or arg.Name
+			end
+
+			local str = tostring(arg or "")
+
+			if str == "Off" or string.find(str, "Off", 1, true) then
+				favorite.MinRarity = 0
+			else
+				favorite.MinRarity = tonumber(string.match(str, "^(%d+)")) or 0
+			end
+		end)
+
+		funcs:Dropdown(v14, "Favorite Mutation", "Favorite pets with this mutation (select Off for rarity only)", false, {
+			"Off",
+			"All Mutations",
+			"Rainbow",
+			"Golden",
+			"Silver",
+			"Celestial",
+			"Voidtouched",
+			"Heavenly",
+			"Plasma",
+			"Dawnbound",
+			"Bloodmoon",
+			"Magma",
+			"Shocked",
+			"Frozen",
+			"Zombified",
+			"Alpha",
+			"Twisted",
+			"Pollinated",
+			"HoneyGlazed",
+			"Candy",
+			"Choc",
+			"Windstruck",
+			"Burnt",
+			"Wet",
+			"Chilled",
+			"Scared",
+		}, { "Off" }, true, function(mutationFilter)
+			favorite.MutationFilter = mutationFilter or "Off"
+		end)
+
+		funcs:Button(v14, "Favorite Pets Now", "Lock matching pets immediately", function()
+			local v15, v16 = favorite.Execute()
+			notifyDeveloper(v15 and "Successfully favorited " .. tostring(v16) .. " pets!" or "Failed: " .. tostring(v16), "Auto Favorite Pet")
+		end)
+
+		v14:AddSeperator({ " - [ Equipped Pets ] - " })
+
+		funcs:Toggle(v14, "Auto Favourite Equiped Pets", "Auto favourite all currently equipped pets", false, true, function(arg)
+			enabled["Auto Favourite Equiped Pets"] = arg
+		end)
+
+		funcs:Toggle(v14, "Auto UnFavourite Equiped Pets", "Auto unfavourite all currently equipped pets", false, true, function(arg)
+			enabled["Auto UnFavourite Equiped Pets"] = arg
+		end)
+
+		funcs:Button(v14, "Favourite Equipped Now", "Favourite all equipped pets immediately", function()
+			local v15, v16 = favorite.SetFavoriteEquipped(true)
+			notifyDeveloper(v15 and "Favourited " .. tostring(v16) .. " equipped pets!" or "Failed: " .. tostring(v16), "Auto Favourite Equiped Pets")
+		end)
+
+		funcs:Button(v14, "UnFavourite Equipped Now", "Unfavourite all equipped pets immediately", function()
+			local v15, v16 = favorite.SetFavoriteEquipped(false)
+			notifyDeveloper(v15 and "Unfavourited " .. tostring(v16) .. " equipped pets!" or "Failed: " .. tostring(v16), "Auto UnFavourite Equiped Pets")
+		end)
+
+		local v15 = tbl5.Farm:AddSection("Automation Fuse Machine")
+		local tbl8 = {}
+
+		pcall(function()
+			local assets = modules.Game and modules.Game.Assets or replicatedStorage:FindFirstChild("Data") and require(replicatedStorage.Data.Assets)
+			assets = assets and assets.Directory or assets or {}
+
+			if next(assets) then
+				local tbl9 = {}
+
+				for k, asset in pairs(assets) do
+					if type(asset) == "table" and asset.CannotFuse ~= true then
+						local rarity = asset.Rarity
+						local displayName = rarity and (rarity.DisplayName or rarity.Name) or "Common"
+						rarity = rarity and rarity.RarityNumber or 1
+
+						table.insert(tbl9, {
+							formatted = string.format("%s [%s]", asset.DisplayName or asset.Name or k, displayName),
+							rNum = rarity,
+							name = asset.DisplayName or asset.Name or k,
+							category = k,
+						})
+					end
+				end
+
+				table.sort(tbl9, function(arg, arg2)
+					if arg.rNum == arg2.rNum then
+						return arg.name < arg2.name
+					end
+					return arg.rNum < arg2.rNum
+				end)
+
+				for _, v16 in ipairs(tbl9) do
+					table.insert(tbl8, v16.formatted)
+				end
+			end
+		end)
+
+		v15:AddSeperator({ " - [ Fuse Machine ] - " })
+
+		funcs:Toggle(v15, "Auto Fuse Machine", "", false, true, function(arg)
+			enabled["Auto Fuse Machine"] = arg
+
+			if arg then
+				task.spawn(fuse.Execute)
+			end
+		end)
+
+		funcs:Dropdown(v15, "Fuse Priority Mode", "Order in which pet categories are chosen to fuse", false, { "Lowest Rarity First", "Highest Rarity First", "Most Duplicates First", "Specific Species Only" }, { "Lowest Rarity First" }, true, function(priorityMode)
+			fuse.PriorityMode = priorityMode or "Lowest Rarity First"
+		end)
+
+		funcs:Dropdown(v15, "Max Rarity to Fuse", "Only fuse pets with rarity <= this", false, {
+			"All",
+			"1 - Common",
+			"2 - Uncommon",
+			"3 - Rare",
+			"4 - Epic",
+			"5 - Legendary",
+			"6 - Mythic",
+			"7 - Cosmic",
+			"8 - Secret",
+			"9 - Eternal",
+			"10 - Divine",
+			"11 - Titan",
+			"12 - Light & Dark",
+		}, { "All" }, true, function(arg)
+			if arg == "All" then
+				fuse.MaxRarity = 0
+			else
+				fuse.MaxRarity = tonumber((arg or "0"):match("^(%d+)")) or 0
+			end
+		end)
+
+		funcs:Dropdown(v15, "Specific Species to Fuse", "Select specific pet species to auto fuse (empty = all allowed)", true, tbl8, {}, true, function(specificSpecies)
+			fuse.SpecificSpecies = specificSpecies or {}
+		end)
+
+		funcs:Toggle(v15, "Skip Mutated Pets", "Do not fuse pets with special mutations (Rainbow, Golden, Silver, etc.)", true, true, function(skipMutations)
+			fuse.SkipMutations = skipMutations
+		end)
+
+		funcs:Toggle(v15, "Eject Incomplete Slots", "Auto-eject pets in machine if <3 matching pets exist", false, true, function(ejectIncomplete)
+			fuse.EjectIncomplete = ejectIncomplete
+		end)
+
+		local v16 = tbl5.Farm:AddSection("Dr. Scramble Outbreak")
+		v16:AddSeperator({ " - [ Event Telemetry & Status ] - " })
+		local v17 = v16:AddParagraph({ "Dr. Scramble Outbreak Telemetry", "Loading event data..." })
+		scramble.StatusParagraph = v17
+
+		task.spawn(function()
+			while task.wait(2.5) do
+				if scramble and scramble.GetSnapshot then
+					scramble.GetSnapshot(true)
+
+					if scramble.GetTelemetryText then
+						pcall(function()
+							v17:Set({ Title = "Dr. Scramble Outbreak Telemetry", Content = scramble.GetTelemetryText() })
+						end)
+					end
+				end
+			end
+		end)
+
+		v16:AddSeperator({ " - [ Drone Hunting ] - " })
+
+		funcs:Toggle(v16, "Auto Farm Drones", "Hunt and destroy event drones across biomes", false, true, function(arg)
+			enabled["Auto Farm Drones"] = arg
+
+			if not arg and modules.Movement then
+				modules.Movement.Release("ScrambleDrone")
+			end
+		end)
+
+		funcs:Toggle(v16, "Fast Switch Bat Attack", "Rapidly alternate between normal bat and The Scrambler to double DPS", true, true, function(fastSwitchBat)
+			enabled["Fast Switch Bat"] = fastSwitchBat
+
+			if scramble then
+				scramble.FastSwitchBat = fastSwitchBat
+			end
+		end)
+
+		funcs:Textbox(v16, "Fast Switch Delay (ms)", "Delay between bat switches in milliseconds (Default: 40ms, range 10-100ms)", tostring(scramble and scramble.FastSwitchDelay or 40), true, function(arg)
+			local num = tonumber(arg)
+
+			if num then
+				local fastSwitchDelay = math.clamp(math.floor(num), 10, 100)
+
+				if scramble then
+					scramble.FastSwitchDelay = fastSwitchDelay
+				end
+			end
+		end)
+
+		funcs:Dropdown(v16, "Orchestrator Mode", "Priority when hunting drones vs stealing eggs", false, { "Prioritize Event", "Steal Idle" }, { "Prioritize Event" }, true, function(arg)
+			scramble.Config.OrchestratorMode = type(arg) == "table" and arg[1] or arg or "Prioritize Event"
+		end)
+
+		funcs:Dropdown(v16, "Priority Target", "Select drone targeting priority strategy", false, {
+			"Closest",
+			"Augmented First",
+			"Reactor First",
+			"Scrap First",
+			"Lowest HP",
+			"Augmented Only",
+			"Reactor Only",
+			"Scrap Only",
+		}, { "Closest" }, true, function(arg)
+			local priorityTarget = type(arg) == "table" and arg[1] or arg
+
+			if scramble then
+				scramble.Config.PriorityTarget = priorityTarget or "Closest"
+			end
+		end)
+
+		funcs:Textbox(v16, "Drone Tween Speed", "Linear flight speed toward drones (Default: 300)", tostring(scramble.Config.TweenSpeed or 300), true, function(arg)
+			local num = tonumber(arg)
+
+			if num then
+				scramble.Config.TweenSpeed = math.clamp(num, 50, 600)
+			end
+		end)
+
+		funcs:Textbox(v16, "Drone Attack Distance", "Horizontal distance to drone when attacking (Default: 3.5)", tostring(scramble.Config.AttackDistance or 3.5), true, function(arg)
+			local num = tonumber(arg)
+
+			if num then
+				scramble.Config.AttackDistance = math.clamp(num, 1, 10)
+			end
+		end)
+
+		funcs:Textbox(v16, "Bat Swing Interval", "Bat swing interval delay in seconds (Default: 0.65s)", tostring(scramble.Config.BatSwingInterval or 0.65), true, function(arg)
+			local num = tonumber(arg)
+
+			if num then
+				scramble.Config.BatSwingInterval = math.clamp(num, 0.2, 1.5)
+			end
+		end)
+
+		local v18 = tbl5.Farm:AddSection("Dr. Scramble Event Shop")
+		v18:AddSeperator({ " - [ Shop Catalog & Balance ] - " })
+		local v19 = v18:AddParagraph({ "Scramble Event Shop", "Loading shop catalog..." })
+		scramble.ShopParagraph = v19
+
+		task.spawn(function()
+			while true do
+				if scramble.FetchSnapshot then
+					scramble.FetchSnapshot(true)
+
+					if scramble.GetShopTelemetryText then
+						v19:Set({ Title = "Scramble Event Shop", Content = scramble.GetShopTelemetryText() })
+					end
+				end
+
+				task.wait(2.5)
+			end
+		end)
+
+		v18:AddSeperator({ " - [ Auto Purchase Settings ] - " })
+
+		funcs:Toggle(v18, "Auto Buy Scramble Shop", "Automatically buy selected items when having enough Samples", false, true, function(arg)
+			enabled["Auto Buy Scramble Shop"] = arg
+		end)
+
+		funcs:Dropdown(v18, "Select Items to Buy", "Choose which items to buy automatically", true, {
+			"Scrambled (Mutation Consumable) [475 Samples]",
+			"Experiment #001 (Egg) [6500 Samples]",
+			"Nibbles #013 (Egg) [2950 Samples]",
+			"2x Cash Booster [275 Samples]",
+			"1.25x Speed Booster [375 Samples]",
+			"2x Treadmill Booster [375 Samples]",
+		}, {}, true, function(selectedShopItems)
+			scramble.Config.SelectedShopItems = selectedShopItems or {}
+		end)
+
+		funcs:Textbox(v18, "Sample Reserve", "Keep at least this many Samples unspent (e.g. 0, 500, 1k)", "0", true, function(arg)
+			local str = tostring(arg or ""):gsub(",", ""):gsub(" ", "")
+			local sampleReserve
+
+			if str:lower():find("k") then
+				sampleReserve = (tonumber(str:lower():gsub("k", "")) or 0) * 1000
+			elseif str:lower():find("m") then
+				sampleReserve = (tonumber(str:lower():gsub("m", "")) or 0) * 1000000
+			else
+				sampleReserve = tonumber(str) or 0
+			end
+
+			if sampleReserve < 0 then
+				sampleReserve = 0
+			end
+
+			scramble.Config.SampleReserve = sampleReserve
+			scramble.Config.ShopReserve = sampleReserve
+		end)
+
+		funcs:Button(v18, "Buy Selected Items Now", "Attempt immediate purchase of selected items once", function()
+			local stepAutoShop = scramble
+
+			if scramble then
+				stepAutoShop = scramble.StepAutoShop or scramble.StepShop
+			end
+
+			if stepAutoShop then
+				(scramble.StepAutoShop or scramble.StepShop)(true)
+
+				if scramble.GetShopTelemetryText then
+					v19:Set({ Title = "Scramble Event Shop", Content = scramble.GetShopTelemetryText() })
+				end
+			end
+		end)
+
+		local v20 = tbl5.Farm:AddSection("The Rift")
+		v20:AddSeperator({ " - [ Rift Machine Telemetry ] - " })
+		local v21 = v20:AddParagraph({ "Rift Machine Status", "Querying Rift status..." })
+
+		if rift then
+			rift.StatusParagraph = v21
+		end
+
+		funcs:Button(v20, "Refresh Rift Status", "Query server for active banner, requirements, and pity count", function()
+			if rift and rift.GetState then
+				rift.GetState(true)
+
+				if rift.GetTelemetryText then
+					pcall(function()
+						v21:Set({ Title = "Rift Machine Status", Content = rift.GetTelemetryText() })
+					end)
+				end
+			end
+
+			notifyDeveloper("Rift status updated.", "The Rift")
+		end)
+
+		funcs:Dropdown(v20, "Desired Banners", "Only prioritize steal & sacrifice when one of these banners is active (empty = all)", true, { "Riftborn (Verdant)", "Riftbeasts (Umbral)", "Shattered Rift (Radiant)" }, {}, true, function(arg)
+			local desiredBanners = arg or {}
+
+			if rift and rift.Config then
+				rift.Config.DesiredBanners = desiredBanners
+			end
+
+			if rift and rift.StatusParagraph and rift.GetTelemetryText then
+				pcall(function()
+					v21:Set({ Title = "Rift Machine Status", Content = rift.GetTelemetryText() })
+				end)
+			end
+		end)
+
+		v20:AddSeperator({ " - [ Automation & Sacrifice ] - " })
+
+		funcs:Toggle(v20, "Auto Rift Sacrifice", "Automatically trade in 3 required sacrifice pets when available in inventory", false, true, function(arg)
+			enabled["Auto Rift Sacrifice"] = arg
+		end)
+
+		funcs:Toggle(v20, "Auto Reroll Rift Recipe", "Automatically use free refreshes if missing required sacrifice pets", false, true, function(arg)
+			enabled["Auto Reroll Rift Recipe"] = arg
+		end)
+
+		funcs:Button(v20, "Reroll Recipe Now", "Use a free refresh immediately to get a new sacrifice recipe", function()
+			if rift and rift.StepReroll then
+				rift.StepReroll(true)
+
+				if rift.GetTelemetryText then
+					pcall(function()
+						v21:Set({ Title = "Rift Machine Status", Content = rift.GetTelemetryText() })
+					end)
+				end
+			end
+		end)
+
+		funcs:Button(v20, "Trade-In Now", "Attempt immediate trade-in with current inventory pets", function()
+			if rift and rift.StepSacrifice then
+				rift.StepSacrifice(true)
+
+				if rift.GetTelemetryText then
+					pcall(function()
+						v21:Set({ Title = "Rift Machine Status", Content = rift.GetTelemetryText() })
+					end)
+				end
+			end
+		end)
+
+		local v22 = tbl5.Farm:AddSection("Automation Sell")
+
+		local tbl9 = {
+			"Off",
+			"1 - Common",
+			"2 - Uncommon",
+			"3 - Rare",
+			"4 - Epic",
+			"5 - Legendary",
+			"6 - Mythic",
+			"7 - Cosmic",
+			"8 - Secret",
+			"9 - Eternal",
+			"10 - Divine",
+			"11 - Titan",
+			"12 - Light & Dark",
+		}
+
+		local tbl10 = {}
+
+		pcall(function()
+			local ok, result = pcall(require, replicatedStorage.Data.Assets)
+
+			if not (ok and result) then
+				local ok2
+				ok2, result = pcall(require, replicatedStorage.Directory.Assets)
+
+				if not (ok2 and result) then
+					result = modules.Game and modules.Game.Assets
+				end
+			end
+
+			local directory = result and result.Directory or type(result) == "table" and result or {}
+
+			if next(directory) then
+				local tbl11 = {}
+
+				for k, v23 in pairs(directory) do
+					if type(v23) == "table" then
+						local rarity = v23.Rarity
+						local displayName = rarity and (rarity.DisplayName or rarity.Name) or "Common"
+
+						if rarity then
+							rarity = rarity.Rank or rarity.RarityNumber
+						end
+
+						rarity = rarity or 1
+
+						table.insert(tbl11, {
+							formatted = string.format("%s [%s]", v23.DisplayName or v23.Name or k, displayName),
+							rNum = rarity,
+							name = v23.DisplayName or v23.Name or k,
+						})
+					end
+				end
+
+				table.sort(tbl11, function(arg, arg2)
+					if arg.rNum == arg2.rNum then
+						return arg.name < arg2.name
+					end
+					return arg.rNum < arg2.rNum
+				end)
+
+				for _, v23 in ipairs(tbl11) do
+					table.insert(tbl10, v23.formatted)
+				end
+			end
+		end)
+
+		if #tbl10 == 0 then
+			tbl10 = {
+				"Chicken [Common]",
+				"Dog [Common]",
+				"Duckling [Common]",
+				"Frog [Common]",
+				"Jerboa [Common]",
+				"Bird [Uncommon]",
+				"Catfish [Uncommon]",
+				"Fennec [Uncommon]",
+				"Burrowing Owl [Rare]",
+				"Camel [Rare]",
+				"Chimpanzee [Rare]",
+				"Dodo [Rare]",
+				"Lava Gecko [Rare]",
+				"Parrotfish [Rare]",
+				"Penguin [Rare]",
+				"Raccoon [Rare]",
+				"Toucan [Rare]",
+				"Tung Tung Sahur [Rare]",
+				"Turtle [Rare]",
+				"Bananita Dolphinita [Epic]",
+				"Bear [Epic]",
+				"Centapede [Epic]",
+				"Crane [Epic]",
+				"Crocodile [Epic]",
+				"Fox [Epic]",
+				"Lava frog [Epic]",
+				"Swan [Epic]",
+				"Swordfish [Epic]",
+				"Tob Tobi Tob Tob [Epic]",
+				"Trulimero Trulicina [Epic]",
+				"Walrus [Epic]",
+				"Axolotl [Legendary]",
+				"Baby Aurora Dragon [Legendary]",
+				"Brr Brr Patapim [Legendary]",
+				"Cosmic Gecko [Legendary]",
+				"Crustacia [Legendary]",
+				"Flaming Bull [Legendary]",
+				"Gorilla [Legendary]",
+				"Lava Iguana [Legendary]",
+				"Mecha Scorpio [Legendary]",
+				"Orangutini Ananassini [Legendary]",
+				"Polar Bear [Legendary]",
+				"Pterodactyl [Legendary]",
+				"Salamander [Legendary]",
+				"Scorpio [Legendary]",
+				"Shark [Legendary]",
+				"Snake [Legendary]",
+				"Spideron [Legendary]",
+				"Ankylosaurus [Mythic]",
+				"Belula Beluga [Mythic]",
+				"Bladehide [Mythic]",
+				"Chillin Chilli [Mythic]",
+				"Cosmic Gorilla [Mythic]",
+				"Froggo [Mythic]",
+				"Mammoth [Mythic]",
+				"Mecha Froggo [Mythic]",
+				"Orca [Mythic]",
+				"Red Panda [Mythic]",
+				"Sabertooth Tiger [Mythic]",
+				"Sand Spider [Mythic]",
+				"Scorpion [Mythic]",
+				"Shadow Dragon [Mythic]",
+				"Spider [Mythic]",
+				"Tiger [Mythic]",
+				"Beluga Whale [Cosmic]",
+				"Bronto [Cosmic]",
+				"Crawler [Cosmic]",
+				"Demon Imp [Cosmic]",
+				"Drilla [Cosmic]",
+				"Hellhound [Cosmic]",
+				"King Mammoth [Cosmic]",
+				"Koi [Cosmic]",
+				"La Vacca Saturno Saturnita [Cosmic]",
+				"Leviathan [Cosmic]",
+				"Mangolini Parrochini [Cosmic]",
+				"Mantaris [Cosmic]",
+				"Mecha Crawler [Cosmic]",
+				"Rhinotaur [Cosmic]",
+				"Royal Sphinx [Cosmic]",
+				"Snowy Owl [Cosmic]",
+				"Triceratops [Cosmic]",
+				"Whale Shark [Cosmic]",
+				"Bombo Croco [Secret]",
+				"Cerberus [Secret]",
+				"Cosmic Dragon [Secret]",
+				"Cosmic Skeleton Boss [Secret]",
+				"Crocodon [Secret]",
+				"Ember Dragon [Secret]",
+				"Gargoyle [Secret]",
+				"King Snake [Secret]",
+				"Kraken [Secret]",
+				"Mecha Crocodon [Secret]",
+				"Minotaur [Secret]",
+				"Mutant Shark [Secret]",
+				"Scorched Dragon [Secret]",
+				"Stag [Secret]",
+				"TRex [Secret]",
+				"Tralaledon [Secret]",
+				"Yeti [Secret]",
+				"Balrog [Eternal]",
+				"El Maja [Eternal]",
+				"Eternal Lunar Dragon [Eternal]",
+				"Gorilla King [Eternal]",
+				"Ice Dragon [Eternal]",
+				"Krakenoid [Eternal]",
+				"Lava Dragon [Eternal]",
+				"Mecha Krakenoid [Eternal]",
+				"Mosasaurus [Eternal]",
+				"Oni Tiger [Eternal]",
+				"Phoenix [Eternal]",
+				"Strawberry Elephant [Eternal]",
+				"Void Dragon [Eternal]",
+				"Aetheron [Divine]",
+				"ArchAngel [Divine]",
+				"Archdemon Dragon [Divine]",
+				"Cthulhu [Divine]",
+				"Dreadscale [Divine]",
+				"Kitsune [Divine]",
+				"Luminous Cthulhu [Divine]",
+				"Mecha Dreadscale [Divine]",
+				"Nightflame [Divine]",
+				"Shattered Colossus [Divine]",
+				"Unicorn [Divine]",
+				"World Burner [Divine]",
+			}
+		end
+
+		local function parseRarityFilter(arg)
+			if not arg then
+				return 0
+			end
+
+			if type(arg) == "table" then
+				arg = arg[1] or arg.Value or arg.Title or arg.Text or arg.Name
+			end
+
+			local str = tostring(arg or "")
+			if str == "Off" or string.find(str, "Off", 1, true) then
+				return 0
+			end
+			local num = tonumber(string.match(str, "^(%d+)"))
+			if num then
+				return num
+			end
+
+			return ({
+				common = 1,
+				uncommon = 2,
+				superrare = 2,
+				rare = 3,
+				epic = 4,
+				legendary = 5,
+				mythic = 6,
+				["squishy god"] = 6,
+				brainrotgod = 6,
+				rainbow = 6,
+				prismatic = 6,
+				cosmic = 7,
+				secret = 8,
+				eternal = 9,
+				limited = 9,
+				divine = 10,
+				transcendent = 10,
+				titan = 11,
+				["light & dark"] = 12,
+				lightdark = 12,
+				["light and dark"] = 12,
+			})[string.lower(str)] or 0
+		end
+
+		v22:AddSeperator({ " - [ Pet Sell ] - " })
+
+		funcs:Toggle(v22, "Auto Sell Pet", "Auto sell pets matching rarity / income rules", false, true, function(arg)
+			enabled["Auto Sell Pet"] = arg
+		end)
+
+		funcs:Dropdown(v22, "Sell Pet Rule", "Select condition mode to sell pets (Rarity, Income, or Both)", false, { "Rarity Only", "Income Threshold Only", "Both (Rarity & Income)", "Either (Rarity or Income)" }, { "Rarity Only" }, true, function(arg)
+			local title
+
+			if type(arg) == "table" then
+				title = arg[1] or arg.Value or arg.Title or arg.Text or arg.Name
+			else
+				title = arg
+			end
+
+			sell.PetRule = tostring(title or "Rarity Only")
+		end)
+
+		funcs:Dropdown(v22, "Pet Max Rarity", "Rule 1: Sell pets with rarity <= this", false, tbl9, { "3 - Rare" }, true, function(arg)
+			sell.MaxRarity = parseRarityFilter(arg)
+		end)
+
+		funcs:Textbox(v22, "Pet Income Threshold", "Rule 2: Sell if income < this (e.g. 10m, 10M, 10000000 | 0 = Off)", "0", true, function(arg)
+			sell.IncomeThreshold = sell.ParseIncome(arg)
+		end)
+
+		funcs:Dropdown(v22, "Blacklist Sell Pets", "Never sell these specific pets even if they match rules", true, tbl10, {}, true, function(blacklistPets)
+			sell.BlacklistPets = blacklistPets or {}
+		end)
+
+		funcs:Button(v22, "Sell Pets Now", "Sell pets once (matching active rules & ignoring blacklist)", function()
+			local v23, v24 = sell.ExecutePet()
+			notifyDeveloper(v23 and "Successfully sold " .. tostring(v24) .. " pets!" or "Failed: " .. tostring(v24), "Auto Sell Pet")
+		end)
+
+		v22:AddSeperator({ " - [ Egg Sell ] - " })
+
+		funcs:Toggle(v22, "Auto Sell Egg", "Auto sell unplaced eggs matching rarity filter", false, true, function(arg)
+			enabled["Auto Sell Egg"] = arg
+		end)
+
+		funcs:Dropdown(v22, "Egg Max Rarity", "Sell eggs with rarity <= this", false, tbl9, { "3 - Rare" }, true, function(arg)
+			sell.EggMaxRarity = parseRarityFilter(arg)
+		end)
+
+		funcs:Button(v22, "Sell Eggs Now", "Sell unplaced eggs once (matching filter)", function()
+			local v23, v24 = sell.ExecuteEgg()
+			notifyDeveloper(v23 and "Successfully sold " .. tostring(v24) .. " eggs!" or "Failed: " .. tostring(v24), "Auto Sell Egg")
+		end)
+
+		local v23 = tbl5.Progression:AddSection("Automation Progression")
+
+		funcs:Toggle(v23, "Auto Buy Trail", "Automatically buy available trails when affordable", false, true, function(arg)
+			enabled["Auto Buy Trail"] = arg
+		end)
+
+		funcs:Toggle(v23, "Auto Upgrade Base", "Automatically upgrade base when money is available", false, true, function(arg)
+			enabled["Auto Upgrade Base"] = arg
+		end)
+
+		funcs:Toggle(v23, "Auto Upgrade Treadmill", "Automatically upgrade treadmill when money is available", false, true, function(arg)
+			enabled["Auto Upgrade Treadmill"] = arg
+		end)
+
+		funcs:Toggle(v23, "Auto Claim", "Claim offline money & index rewards", false, true, function(arg)
+			enabled["Auto Claim"] = arg
+		end)
+
+		local esp2 = tbl5.ESP:AddSection("ESP")
+
+		funcs:Toggle(esp2, "ESP Eggs", "Display markers for all area eggs", false, true, function(arg)
+			enabled["ESP Eggs"] = arg
+		end)
+
+		funcs:Toggle(esp2, "ESP Rare Eggs", "Highlight high tier eggs (>= Mythic)", false, true, function(arg)
+			enabled["ESP Rare Eggs"] = arg
+		end)
+
+		funcs:Toggle(esp2, "ESP Guards", "Highlight guard outlines based on state", false, true, function(arg)
+			enabled["ESP Guards"] = arg
+		end)
+
+		funcs:Toggle(esp2, "ESP Scramble Drones", "3D Highlights & health bars for active event drones", false, true, function(arg)
+			enabled["ESP Scramble Drones"] = arg
+
+			if not arg and scramble and scramble.ClearDroneESP then
+				scramble.ClearDroneESP()
+			end
+		end)
+
+		funcs:Toggle(esp2, "ESP Scramble Drops", "3D Markers with distance for dropped mutant samples", false, true, function(arg)
+			enabled["ESP Scramble Drops"] = arg
+
+			if not arg and scramble and scramble.ClearDropsESP then
+				scramble.ClearDropsESP()
+			end
+		end)
+
+		local v24 = tbl5.ESP:AddSection("Guard Safety")
+
+		funcs:Toggle(v24, "Guard Warning", "Alert when a guard is chasing you", false, true, function(arg)
+			enabled["Guard Warning"] = arg
+		end)
+
+		funcs:Toggle(v24, "Auto Drop Egg", "Automatically drop held egg if chased by guard", false, true, function(arg)
+			enabled["Auto Drop Egg"] = arg
+		end)
+
+		local Server = tbl5.Miscellaneous:AddSection("Server")
+		Server:AddSeperator({ " - [ Ping ] - " })
+
+		funcs:Textbox(Server, "Set Ping", "", "500", true, function(arg)
+			enabled["Set Ping"] = tonumber(arg)
+		end)
+
+		funcs:Toggle(Server, "Enable Set Ping", "", false, true, function(arg)
+			enabled["Enable Set Ping"] = arg
+
+			task.spawn(function()
+				if enabled["Enable Set Ping"] then
+					settings():GetService("NetworkSettings").IncomingReplicationLag = math.clamp(enabled["Set Ping"] * 0.0006, 0, 1)
+				else
+					settings():GetService("NetworkSettings").IncomingReplicationLag = 0
+				end
+			end)
+		end)
+
+		Server:AddSeperator({ " - [ Job Server ] - " })
+
+		funcs:Textbox(Server, "Job ID", "", "", true, function(arg)
+			enabled["Job ID"] = arg
+		end)
+
+		funcs:Button(Server, "Join Job ID", "", function()
+			services.TeleportService:TeleportToPlaceInstance(game.PlaceId, enabled["Job ID"], localPlayer)
+		end)
+
+		Server:AddSeperator({ " - [ Other ] - " })
+
+		funcs:Toggle(Server, "Auto Execute Script", "", false, true, function(arg)
+			enabled["Auto Execute Script"] = arg
+
+			if enabled["Auto Execute Script"] then
+				queue_on_teleport(" loadstring(game:HttpGet(\"https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua\", true))() ")
+			else
+				queue_on_teleport("")
+			end
+		end)
+
+		funcs:Toggle(Server, "Auto Execute Script When Reconnected", "this means when you reconnectd and then execute the speed hub x script without manually executing, and you must enable 'Auto Reconnect' first, it is useful for farmers ugphone or somethings", true, true, function(arg)
+			enabled["Auto Execute Script When Reconnected"] = arg
+		end)
+
+		funcs:Toggle(Server, "Auto Reconnect", "", false, true, function(arg)
+			enabled["Auto Reconnect"] = arg
+		end)
+
+		task.spawn(function()
+			utils.Connections(coreGui:FindFirstChild("RobloxPromptGui"):FindFirstChild("promptOverlay").ChildAdded, function(arg)
+				if enabled["Auto Reconnect"] and arg.Name == "ErrorPrompt" then
+					task.delay(2, function()
+						if enabled["Auto Execute Script When Reconnected"] then
+							queue_on_teleport("                  loadstring(game:HttpGet(\"https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua\", true))()\n                ")
+						end
+
+						teleportService:Teleport(game.PlaceId, localPlayer)
+					end)
+				end
+			end)
+		end)
+
+		local Player = tbl5.Miscellaneous:AddSection("Player")
+		Player:AddSeperator({ " - [ Local Player ] - " })
+
+		funcs:Toggle(Player, "No Clip", "", false, true, function(arg)
+			enabled["No Clip"] = arg
+
+			utils.Fallback(arg, "No Clip", function()
+				local character2 = localPlayer and localPlayer.Character
+
+				for _, child in pairs(character2:GetChildren()) do
+					if child:IsA("BasePart") then
+						child.CanCollide = true
+					end
+				end
+			end)
+		end)
+
+		funcs:Toggle(Player, "Infinite Jump", "", false, true, function(arg)
+			enabled["Infinite Jump"] = arg
+
+			utils.Connections(userInputService.JumpRequest, function()
+				local character2 = localPlayer and localPlayer.Character
+				character2 = character2 and character2:FindFirstChild("Humanoid")
+
+				if character2 and enabled["Infinite Jump"] then
+					character2:ChangeState("Jumping")
+				end
+			end)
+		end)
+
+		local Performance = tbl5.Miscellaneous:AddSection("Performance")
+		Performance:AddSeperator({ " - [ Graphics & FPS ] - " })
+
+		funcs:Toggle(Performance, "Reduce Lag", "Simplify materials, remove shadows & clutter to boost FPS", false, true, function(arg)
+			enabled["Reduce Lag"] = arg
+			misc.ApplyReduceLag(arg)
+		end)
+
+		funcs:Toggle(Performance, "Hide Own Pets", "Hide your equipped pets locally to reduce lag", false, true, function(arg)
+			enabled["Hide Own Pets"] = arg
+			misc.SetHideOwnPets(arg)
+		end)
+
+		funcs:Toggle(Performance, "Hide Own Eggs", "Hide your placed eggs locally to reduce lag", false, true, function(arg)
+			enabled["Hide Own Eggs"] = arg
+			misc.SetHideOwnEggs(arg)
+		end)
+
+		funcs:Toggle(Performance, "Hide Other Eggs", "Hide other players' placed eggs to boost FPS", false, true, function(arg)
+			enabled["Hide Other Eggs"] = arg
+			misc.SetHideOtherEggs(arg)
+		end)
+
+		funcs:Toggle(Performance, "Hide Money Animation", "Hide floating money popup text that rises from pets", false, true, function(arg)
+			enabled["Hide Money Animation"] = arg
+
+			if arg then
+				misc.SetHideMoneyAnimation(true)
+			end
+		end)
+
+		funcs:Toggle(Performance, "Show Screen White", "Disable 3D rendering to drastically reduce CPU/GPU usage", false, true, function(arg)
+			runService:Set3dRenderingEnabled(not arg)
+		end)
+
+		funcs:Toggle(Performance, "Show Screen Black", "Set lighting exposure to minimum for power saving", false, true, function(arg)
+			lighting.ExposureCompensation = arg and -10 or 0
+		end)
+
+		Performance:AddSeperator({ " - [ Game Settings ] - " })
+		local settingsCmds = nil
+
+		pcall(function()
+			settingsCmds = modules.Game and modules.Game.SettingsCmds or replicatedStorage:FindFirstChild("Shared") and require(replicatedStorage.Shared.SettingsCmds)
+		end)
+
+		local function readGameSetting(arg, arg2)
+			if settingsCmds and settingsCmds.Flag then
+				local ok, result = pcall(function()
+					return settingsCmds.Flag(arg)
+				end)
+
+				if ok and result ~= nil then
+					return result
+				end
+			end
+
+			return arg2 or false
+		end
+
+		local function writeGameSetting(arg, arg2)
+			if settingsCmds and settingsCmds.Write then
+				pcall(function()
+					settingsCmds.Write(arg, arg2)
+				end)
+			else
+				pcall(function()
+					local Remotes_ = require(game:GetService("ReplicatedStorage").Shared.Remotes)
+
+					if Remotes_ and Remotes_.Preferences and Remotes_.Preferences.AskWrite then
+						Remotes_.Preferences.AskWrite:InvokeServer(arg, arg2)
+					end
+				end)
+			end
+		end
+
+		funcs:Toggle(Performance, "Hide Other Pets", "Hide other players' pets via game settings", readGameSetting("HideOtherPets", false), true, function(arg)
+			enabled["Hide Other Pets (Game)"] = arg
+			writeGameSetting("HideOtherPets", arg)
+		end)
+
+		funcs:Toggle(Performance, "Disable Video", "Disable treadmill video frames via game settings", readGameSetting("DisableVideos", false), true, function(arg)
+			enabled["Disable Video (Game)"] = arg
+			writeGameSetting("DisableVideos", arg)
+		end)
+
+		funcs:Toggle(Performance, "Music", "Toggle in-game background music via game settings", readGameSetting("Music", true), true, function(arg)
+			enabled["Music (Game)"] = arg
+			writeGameSetting("Music", arg)
+		end)
+
+		tbl5.Miscellaneous:AddSection("Misc"):AddSeperator({ " - [ Utilities ] - " })
+		local Webhook = tbl5.Settings:AddSection("Webhook")
+
+		funcs:Textbox(Webhook, "Discord Webhook URL", "Paste your Discord webhook URL here", "", true, function(url)
+			modules.WebhookManager.Url = url or ""
+		end)
+
+		funcs:Toggle(Webhook, "Webhook Egg Steal", "Send Discord notification when an egg is stolen (sent on idle)", false, true, function(eggStealEnabled)
+			enabled["Webhook Egg Steal"] = eggStealEnabled
+			modules.WebhookManager.EggStealEnabled = eggStealEnabled
+		end)
+
+		funcs:Dropdown(Webhook, "Webhook Min Rarity", "Only send notification for eggs with rarity >= this", false, {
+			"All",
+			"1 - Common",
+			"2 - Uncommon",
+			"3 - Rare",
+			"4 - Epic",
+			"5 - Legendary",
+			"6 - Mythic",
+			"7 - Cosmic",
+			"8 - Secret",
+			"9 - Eternal",
+			"10 - Divine",
+			"11 - Titan",
+			"12 - Light & Dark",
+		}, { "All" }, true, function(arg)
+			if type(arg) == "table" then
+				arg = arg[1] or arg.Value or arg.Title or arg.Text
+			end
+
+			local str = tostring(arg or "All")
+
+			if str == "All" or string.find(str, "All", 1, true) then
+				modules.WebhookManager.MinRarity = 1
+			else
+				modules.WebhookManager.MinRarity = tonumber(string.match(str, "(%d+)")) or 1
+			end
+		end)
+
+		funcs:Button(Webhook, "Test Webhook", "Send a test notification to verify URL", function()
+			if not modules.WebhookManager.Url or modules.WebhookManager.Url == "" then
+				notifyDeveloper("Please paste Webhook URL first!", "Webhook")
+				return
+			end
+
+			modules.WebhookManager.SendPayload({
+				petCategory = "Phoenix",
+				petName = "Phoenix",
+				rarityName = "Eternal",
+				rarityNum = 9,
+				scale = 1,
+				mutation = "Rainbow",
+				areaId = "Volcano",
+				nestId = 1,
+				timestamp = os.time(),
+			})
+
+			notifyDeveloper("Test webhook sent!", "Webhook")
+		end)
+
+		funcs:Button(tbl5.Settings:AddSection("Reset Config"), "Reset Script Config", "", function()
+			for _, v25 in next, { "Speed_Hub", "SpeedHubX", "Speed Hub X", "Speed Hub", "Speed_Hub_X" }, nil do
+				if isfolder(v25) then
+					delfolder(v25)
+				end
+			end
+		end)
+
+		task.spawn(shx.AddSettingUi, shx, v7)
+	end
+
+	controller.LoadFunction = function()
+		local function startFeatureLoop(arg, arg2)
+			task.spawn(function()
+				utils.StartLoop(arg, arg2)
+			end)
+		end
+
+		startFeatureLoop("No Clip", function()
+			local character2 = localPlayer and localPlayer.Character
+			if not character2 then
+				task.wait(0.5)
+				return
+			end
+
+			for _, child in pairs(character2:GetChildren()) do
+				if child:IsA("BasePart") and child.CanCollide then
+					child.CanCollide = false
+				end
+			end
+
+			task.wait(0.1)
+		end)
+
+		task.spawn(function()
+			while not shx.Unloaded do
+				local ok, result = pcall(orchestrator.Tick)
+
+				if not ok and _G.DebugMode then
+					warn("[Orchestrator Error] " .. tostring(result))
+				end
+
+				if treadmill and treadmill.CheckTreadmil and treadmill.CheckTreadmil() then
+					task.wait(0.4)
+				else
+					task.wait(0.04)
+				end
+			end
+		end)
+
+		startFeatureLoop("Auto Pick Dropped Egg", function()
+			if not game_.Ready then
+				return
+			end
+			steal.AutoPickStep()
+			task.wait()
+		end)
+
+		startFeatureLoop("Auto Hatch", function()
+			if not game_.Ready then
+				return
+			end
+			hatch.Step()
+			task.wait(2)
+		end)
+
+		startFeatureLoop("Auto Equip Best", function()
+			if not game_.Ready then
+				return
+			end
+			equip.Step()
+			task.wait(6)
+		end)
+
+		startFeatureLoop("Auto Favorite Pet", function()
+			if not game_.Ready then
+				return
+			end
+			favorite.Step()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto Favourite Equiped Pets", function()
+			if not game_.Ready then
+				return
+			end
+			favorite.StepFavEquipped()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto UnFavourite Equiped Pets", function()
+			if not game_.Ready then
+				return
+			end
+			favorite.StepUnfavEquipped()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto Fuse Machine", function()
+			if not game_.Ready then
+				return
+			end
+			fuse.Step()
+			task.wait(2)
+		end)
+
+		startFeatureLoop("Auto Rebirth", function()
+			if not game_.Ready then
+				return
+			end
+			rebirth.Step()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto Upgrade Base", function()
+			if not game_.Ready then
+				return
+			end
+			upgrade.Step()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto Upgrade Treadmill", function()
+			if not game_.Ready then
+				return
+			end
+			upgrade.StepTreadmill()
+			task.wait(3)
+		end)
+
+		startFeatureLoop("Auto Buy Trail", function()
+			if not game_.Ready then
+				return
+			end
+
+			if trail and trail.Step then
+				trail.Step()
+			end
+
+			task.wait(5)
+		end)
+
+		startFeatureLoop("Auto Claim", function()
+			if not game_.Ready then
+				return
+			end
+			claim.Step()
+			task.wait(5)
+		end)
+
+		enabled["ESP Loop"] = true
+
+		startFeatureLoop("ESP Loop", function()
+			if not game_.Ready then
+				return
+			end
+			esp.Step()
+
+			if scramble then
+				if scramble.UpdateDroneESP then
+					scramble.UpdateDroneESP()
+				end
+
+				if scramble.UpdateDropsESP then
+					scramble.UpdateDropsESP()
+				end
+			end
+
+			task.wait(1)
+		end)
+
+		task.spawn(function()
+			local clientRenderedAssets = workspace:FindFirstChild("ClientRenderedAssets")
+
+			if clientRenderedAssets then
+				utils.Connections(clientRenderedAssets.ChildAdded, function(arg)
+					if not enabled["Hide Own Pets"] then
+						return
+					end
+					task.wait(0.05)
+					local userId = localPlayer.UserId
+
+					if arg:GetAttribute("OwnerUserId") == userId or string.find(arg.Name, tostring(localPlayer.UserId), 1, true) == 1 then
+						for _, descendant in ipairs(arg:GetDescendants()) do
+							if descendant:IsA("BasePart") then
+								descendant.LocalTransparencyModifier = 1
+							elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+								descendant.Transparency = 1
+							elseif descendant:IsA("BillboardGui") or descendant:IsA("ParticleEmitter") or descendant:IsA("Highlight") then
+								descendant.Enabled = false
+							end
+						end
+
+						local connection = arg.DescendantAdded:Connect(function(descendant)
+							if not enabled["Hide Own Pets"] then
+								return
+							end
+
+							if descendant:IsA("BasePart") then
+								descendant.LocalTransparencyModifier = 1
+							elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+								descendant.Transparency = 1
+							elseif descendant:IsA("BillboardGui") or descendant:IsA("ParticleEmitter") or descendant:IsA("Highlight") then
+								descendant.Enabled = false
+							end
+						end)
+
+						arg.Destroying:Connect(function()
+							if connection then
+								connection:Disconnect()
+								connection = nil
+							end
+						end)
+					end
+				end)
+			end
+		end)
+
+		task.spawn(function()
+			for _, child in ipairs(workspace:GetChildren()) do
+				if child.Name == "PlacedEggRenders" then
+					utils.Connections(child.ChildAdded, function(arg)
+						task.wait(0.05)
+						local flag = string.find(arg.Name, tostring(localPlayer.UserId), 1, true) == 1
+						local flag2
+
+						if flag then
+							flag2 = flag
+						else
+							local userId = localPlayer.UserId
+							flag2 = arg:GetAttribute("OwnerUserId") == userId
+						end
+
+						if flag2 and enabled["Hide Own Eggs"] or not flag2 and enabled["Hide Other Eggs"] then
+							for _, descendant in ipairs(arg:GetDescendants()) do
+								if descendant:IsA("BasePart") then
+									descendant.LocalTransparencyModifier = 1
+								elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+									descendant.Transparency = 1
+								elseif descendant:IsA("BillboardGui") or descendant:IsA("ParticleEmitter") or descendant:IsA("Highlight") then
+									descendant.Enabled = false
+								end
+							end
+
+							local connection = arg.DescendantAdded:Connect(function(descendant)
+								if not (flag2 and enabled["Hide Own Eggs"] or not flag2 and enabled["Hide Other Eggs"]) then
+									return
+								end
+
+								if descendant:IsA("BasePart") then
+									descendant.LocalTransparencyModifier = 1
+								elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+									descendant.Transparency = 1
+								elseif descendant:IsA("BillboardGui") or descendant:IsA("ParticleEmitter") or descendant:IsA("Highlight") then
+									descendant.Enabled = false
+								end
+							end)
+
+							arg.Destroying:Connect(function()
+								if connection then
+									connection:Disconnect()
+									connection = nil
+								end
+							end)
+						end
+					end)
+				end
+			end
+		end)
+
+		task.spawn(function()
+			local terrain = workspace:FindFirstChild("Terrain")
+
+			if terrain then
+				utils.Connections(terrain.ChildAdded, function(arg)
+					if not enabled["Hide Money Animation"] then
+						return
+					end
+
+					if arg.Name == "SyncedIncomeCashAttachment" or arg.Name == "SyncedIncomeCash" then
+						arg:Destroy()
+					end
+				end)
+			end
+		end)
+
+		startFeatureLoop("Webhook Dispatcher", function()
+			if webhookManager then
+				webhookManager.Step()
+			end
+
+			task.wait(1)
+		end)
+
+		startFeatureLoop("Pet Predictions Loop", function()
+			if petPredictor and petPredictor.Paragraph then
+				petPredictor.UpdateParagraph()
+			end
+
+			task.wait(15)
+		end)
+
+		startFeatureLoop("Fuse Predictor Loop", function()
+			if fusePredictor and fusePredictor.Paragraph then
+				fusePredictor.UpdateParagraph()
+			end
+
+			task.wait(10)
+		end)
+
+		startFeatureLoop("Auto Treadmill", function()
+			if not game_.Ready then
+				return
+			end
+
+			if enabled["Auto Treadmill"] and treadmill and treadmill.Step and treadmill.CanRun and treadmill.CanRun() then
+				treadmill.Step()
+			end
+
+			if treadmill.IsOnTreadmill() and not treadmill.CanRun() then
+				treadmill.ExitTreadmill()
+			end
+
+			task.wait(2)
+		end)
+
+		startFeatureLoop("Auto Sell Pet", function()
+			if not game_.Ready then
+				return
+			end
+
+			if sell and sell.CanSell and sell.CanSell() then
+				sell.Step()
+			end
+
+			task.wait(2)
+		end)
+
+		startFeatureLoop("Auto Sell Egg", function()
+			if not game_.Ready then
+				return
+			end
+
+			if sell and sell.CanSell and sell.CanSell() then
+				sell.Step()
+			end
+
+			task.wait(2)
+		end)
+
+		task.spawn(function()
+			pcall(function()
+				for _, descendant in ipairs(workspace:GetDescendants()) do
+					if descendant:IsA("ProximityPrompt") and enabled["Instant Prompt"] then
+						descendant.HoldDuration = 0
+					end
+				end
+			end)
+
+			workspace.DescendantAdded:Connect(function(descendant)
+				if enabled["Instant Prompt"] and descendant:IsA("ProximityPrompt") then
+					descendant.HoldDuration = 0
+				end
+			end)
+		end)
+
+		task.spawn(function()
+			while not shx.Unloaded do
+				if scramble and scramble.StatusParagraph and scramble.GetTelemetryText then
+					pcall(function()
+						scramble.StatusParagraph:Set({ Title = "Dr. Scramble Outbreak Telemetry", Content = scramble.GetTelemetryText() })
+					end)
+				end
+
+				if scramble and scramble.ShopParagraph and scramble.GetShopTelemetryText then
+					pcall(function()
+						scramble.ShopParagraph:Set({ Title = "Scramble Event Shop", Content = scramble.GetShopTelemetryText() })
+					end)
+				end
+
+				if rift and rift.StatusParagraph and rift.GetTelemetryText then
+					pcall(function()
+						rift.StatusParagraph:Set({ Title = "Rift Machine Status", Content = rift.GetTelemetryText() })
+					end)
+				end
+
+				task.wait(3)
+			end
+		end)
+
+		startFeatureLoop("Auto Buy Scramble Shop", function()
+			if not game_.Ready then
+				return
+			end
+
+			if scramble and scramble.StepAutoShop then
+				scramble.StepAutoShop()
+			end
+
+			task.wait(2)
+		end)
+
+		startFeatureLoop("Auto Rift", function()
+			if not game_.Ready then
+				return
+			end
+
+			if rift and (enabled["Auto Rift Sacrifice"] or enabled["Auto Reroll Rift Recipe"]) and rift.Step then
+				rift.Step()
+			end
+
+			task.wait(2.5)
+		end)
+	end
+
+	controller.Dependency = function()
+		utils.Connections(localPlayer.CharacterAdded, function(arg)
+			character = arg
+			humanoid = character:WaitForChild("Humanoid")
+			humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+		end, "Dependency_001")
+
+		task.spawn(function()
+			local v7, v8 = game_.Init()
+			if not v7 then
+				notifyDeveloper("Game API failed to load: " .. tostring(v8), "Speed Hub X")
+				return
+			end
+			task.wait(1)
+			if not game_.GetSaveWait() then
+				notifyDeveloper("Player data failed to load", "Speed Hub X")
+				return
+			end
+
+			pcall(function()
+				game_.EggCmds.RequestAreaEggSnapshot()
+				game_.EggCmds.RequestRuntimeSnapshot()
+			end)
+
+			notifyDeveloper("Game API ready!", "Speed Hub X")
+		end)
+	end
+
+	controller:Dependency()
+	controller:LoadFunction()
+	controller:LoadLibrary()
+end
+
+task.spawn(pcall, function()
+	local function createCloneRefCache()
+		local cloneRefFunction = cloneref
+		local cloneCache = setmetatable({}, { __mode = "v" })
+
+		return cloneRefFunction and function(instance)
+			if not instance then
+				return nil
+			end
+			local debugId = instance:GetDebugId() or instance
+			local cachedRef = cloneCache[debugId]
+			if cachedRef then
+				return cachedRef
+			end
+			local clonedRef = cloneRefFunction(instance)
+			cloneCache[debugId] = clonedRef
+			return clonedRef
+		end or function(instance)
+			return instance
+		end
+	end
+
+	local cloneRef = createCloneRefCache()
+	cloneRef(game:GetService("ContentProvider"))
+	local localPlayer = cloneRef(game:GetService("Players")).LocalPlayer
+
+	local function repairHumanoid()
+		local character = localPlayer.Character
+		if not character then
+			return false
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		local animate = character:FindFirstChild("Animate")
+		local currentCamera = workspace.CurrentCamera
+		if not humanoid or not humanoidRootPart then
+			return false
+		end
+
+		if humanoid:GetAttribute("__Index") == true then
+			return true
+		end
+		local archivable = character.Archivable
+		character.Archivable = true
+
+		local ok, cameraSubject = pcall(function()
+			return humanoid:Clone()
+		end)
+
+		character.Archivable = archivable
+		if not ok or not cameraSubject then
+			return false
+		end
+		local walkSpeed = humanoid.WalkSpeed
+		local jumpPower = humanoid.JumpPower
+		local jumpHeight = humanoid.JumpHeight
+		local useJumpPower = humanoid.UseJumpPower
+		local hipHeight = humanoid.HipHeight
+		local autoRotate = humanoid.AutoRotate
+		local maxHealth = humanoid.MaxHealth
+		local health = humanoid.Health
+		cameraSubject.Name = "Humanoid"
+		cameraSubject:SetAttribute("__Index", true)
+		cameraSubject.Parent = character
+		humanoid:Destroy()
+		cameraSubject.WalkSpeed = walkSpeed
+		cameraSubject.JumpPower = jumpPower
+		cameraSubject.JumpHeight = jumpHeight
+		cameraSubject.UseJumpPower = useJumpPower
+		cameraSubject.HipHeight = hipHeight
+		cameraSubject.AutoRotate = autoRotate
+		cameraSubject.MaxHealth = maxHealth
+		cameraSubject.Health = math.min(health, maxHealth)
+
+		for _, v7 in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+			pcall(cameraSubject.SetStateEnabled, cameraSubject, v7, true)
+		end
+
+		humanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+		humanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+
+		if currentCamera then
+			currentCamera.CameraType = Enum.CameraType.Custom
+			currentCamera.CameraSubject = cameraSubject
+		end
+
+		if animate then
+			animate.Disabled = true
+			task.wait()
+			animate.Disabled = false
+		end
+
+		task.defer(function()
+			if cameraSubject.Parent then
+				cameraSubject:ChangeState(Enum.HumanoidStateType.Running)
+			end
+		end)
+
+		return true
+	end
+
+	task.spawn(function()
+		while task.wait(0.1) do
+			local character = localPlayer.Character
+
+			if character then
+				local humanoid = character:FindFirstChild("Humanoid")
+
+				if humanoid and not humanoid:GetAttribute("__Index") then
+					pcall(repairHumanoid)
+				end
+			end
+		end
+	end)
+
+	task.spawn(function()
+		while task.wait(0.1) do
+			local character = localPlayer.Character
+
+			if character then
+				local antiCollisionHighSeedPushBack = character:FindFirstChild("AntiCollisionHighSeedPushBack", true)
+
+				if antiCollisionHighSeedPushBack then
+					antiCollisionHighSeedPushBack.Disabled = true
+					antiCollisionHighSeedPushBack:Destroy()
+				end
+			end
+		end
+	end)
+end)
+task.spawn(initializeSpeedHub)
