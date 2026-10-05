@@ -1,4 +1,4 @@
-ocal myScriptCode = [[
+local myScriptCode = [[
 if _G.__rivals_loaded then
     warn("[rivals] already running — blocked duplicate execution.")
     return
