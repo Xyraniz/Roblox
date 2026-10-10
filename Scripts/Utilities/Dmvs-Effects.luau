@@ -5139,6 +5139,693 @@ local function dmvsCreateSakuraEffectTemplate()
     return created[1]
 end
 
+local function dmvsCreateFrostbiteTemplate()
+    local created = {}
+    do
+        local object = Instance.new("Folder")
+        object.Name = "Frostbite"
+        created[1] = object
+    end
+    do
+        local object = Instance.new("Part")
+        object.Name = "Effect"
+        setProperty(object, "Anchored", false)
+        setProperty(object, "CanCollide", false)
+        setProperty(object, "CanQuery", false)
+        setProperty(object, "CanTouch", false)
+        setProperty(object, "CastShadow", false)
+        setProperty(object, "CollisionGroup", "Default")
+        setProperty(object, "Color", Color3.new(0.63921570778, 0.63529413939, 0.64705884457))
+        setProperty(object, "Massless", false)
+        setProperty(object, "Material", Enum.Material.Plastic)
+        setProperty(object, "MaterialVariant", "")
+        setProperty(object, "PivotOffset", CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Reflectance", 0)
+        setProperty(object, "Shape", Enum.PartType.Block)
+        setProperty(object, "Size", Vector3.new(2, 2, 1))
+        setProperty(object, "Transparency", 1)
+        object.Anchored = true
+        object.CanCollide = false
+        object.CanTouch = false
+        object.CanQuery = false
+        object.CFrame = CFrame.new()
+        object.Parent = created[1]
+        created[2] = object
+    end
+    do
+        local object = Instance.new("Attachment")
+        object.Name = "Attachment"
+        setProperty(object, "CFrame", CFrame.new(0, -2.9735991955, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Visible", false)
+        object.Parent = created[2]
+        created[3] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Smoke"
+        setProperty(object, "Acceleration", Vector3.new(0, 20, 0))
+        setProperty(object, "Brightness", 4)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.16862745583, 0.58039212227, 0.89803922176)), ColorSequenceKeypoint.new(1, Color3.new(0.61960786581, 0.83921569586, 0.89803922176))}))
+        setProperty(object, "Drag", 2)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.Grid8x8)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.OneShot)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 1.5))
+        setProperty(object, "LightEmission", 0)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 10)
+        setProperty(object, "RotSpeed", NumberRange.new(-50, 50))
+        setProperty(object, "Rotation", NumberRange.new(-360, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 6, 0.5), NumberSequenceKeypoint.new(1, 6, 0.5)}))
+        setProperty(object, "Speed", NumberRange.new(5, 10))
+        setProperty(object, "SpreadAngle", Vector2.new(180, 180))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://15227477343")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0.8125, 0), NumberSequenceKeypoint.new(0.35616436601, 0.76875001192, 0), NumberSequenceKeypoint.new(0.52428394556, 0.80000001192, 0), NumberSequenceKeypoint.new(0.81569111347, 0.97500002384, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", -2)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 20)
+        object:SetAttribute("EmitDuration", 0.5)
+        object.Parent = created[3]
+        created[4] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "SmokeCustum"
+        setProperty(object, "Acceleration", Vector3.new(0, 20, 0))
+        setProperty(object, "Brightness", 1)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 2)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.Grid4x4)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.OneShot)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 2))
+        setProperty(object, "LightEmission", 0.5)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 20)
+        setProperty(object, "RotSpeed", NumberRange.new(-50, 50))
+        setProperty(object, "Rotation", NumberRange.new(-360, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.16856493056, 1.6871166229, 0.46012282372), NumberSequenceKeypoint.new(0.33712986112, 2.9754602909, 0.61349654198), NumberSequenceKeypoint.new(0.5250569582, 2.6993865967, 0.52147293091), NumberSequenceKeypoint.new(0.71298408508, 1.3190186024, 0.21472454071), NumberSequenceKeypoint.new(0.86104786396, 1.0736197233, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "Speed", NumberRange.new(5, 10))
+        setProperty(object, "SpreadAngle", Vector2.new(90, 90))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://18111310105")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.27148193121, 0.83749997616, 0), NumberSequenceKeypoint.new(0.38356164098, 0.74374997616, 0), NumberSequenceKeypoint.new(0.53424656391, 0.73124998808, 0), NumberSequenceKeypoint.new(0.67372351885, 0.81875002384, 0), NumberSequenceKeypoint.new(0.85180568695, 0.88125002384, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0.5)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 25)
+        object:SetAttribute("EmitDuration", 0.2)
+        object.Parent = created[3]
+        created[5] = object
+    end
+    do
+        local object = Instance.new("Attachment")
+        object.Name = "Attachment"
+        setProperty(object, "CFrame", CFrame.new(0, -2.1514439583, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Visible", false)
+        object.Parent = created[2]
+        created[6] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "SmokeCustum"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 1)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 2)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Left)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.Grid4x4)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.OneShot)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 2))
+        setProperty(object, "LightEmission", 0.5)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 20)
+        setProperty(object, "RotSpeed", NumberRange.new(-50, 50))
+        setProperty(object, "Rotation", NumberRange.new(-360, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.16856493056, 1.6871166229, 0.46012282372), NumberSequenceKeypoint.new(0.33712986112, 2.9754602909, 0.61349654198), NumberSequenceKeypoint.new(0.5250569582, 2.6993865967, 0.52147293091), NumberSequenceKeypoint.new(0.71298408508, 1.3190186024, 0.21472454071), NumberSequenceKeypoint.new(0.86104786396, 1.0736197233, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "Speed", NumberRange.new(10, 20))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 180))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://18111310105")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0.11250001192, 0), NumberSequenceKeypoint.new(0.28144457936, 0.13749998808, 0), NumberSequenceKeypoint.new(0.39352425933, 0.30000001192, 0), NumberSequenceKeypoint.new(0.52677458525, 0.70624995232, 0), NumberSequenceKeypoint.new(0.67372351885, 0.81875002384, 0), NumberSequenceKeypoint.new(0.85180568695, 0.88125002384, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0.5)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 25)
+        object:SetAttribute("EmitDuration", 0.2)
+        object.Parent = created[6]
+        created[7] = object
+    end
+    do
+        local object = Instance.new("Attachment")
+        object.Name = "Ground"
+        setProperty(object, "CFrame", CFrame.new(0, -2.9928765297, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Visible", false)
+        object.Parent = created[2]
+        created[8] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "FrostGround"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 1)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.49411761761, 1, 0.98431372643)), ColorSequenceKeypoint.new(1, Color3.new(0.10196077824, 0.79215687513, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 1.5))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.VelocityPerpendicular)
+        setProperty(object, "Rate", 2)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(-90, 90))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.10706150532, 5.7975459099, 0.40000000596), NumberSequenceKeypoint.new(0.28929385543, 8.0674848557, 0.40000000596), NumberSequenceKeypoint.new(0.56492030621, 7.9141101837, 0.40000000596), NumberSequenceKeypoint.new(1, 5.889570713, 0.40000000596)}))
+        setProperty(object, "Speed", NumberRange.new(0.0099999997765, 0.0099999997765))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 0))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://109310594794388")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.24533000588, 0.49374997616, 0), NumberSequenceKeypoint.new(0.50062263012, 0.3125, 0), NumberSequenceKeypoint.new(0.75591528416, 0.49374997616, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0.0099999997765)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 1)
+        object:SetAttribute("EmitDuration", 0.01)
+        object.Parent = created[8]
+        created[9] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "FrostGround"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 1)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 1.5))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.VelocityPerpendicular)
+        setProperty(object, "Rate", 2)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(-90, 90))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.11275626719, 7.1779146194, 0.40000000596), NumberSequenceKeypoint.new(0.31321185827, 9.4478530884, 0.40000000596), NumberSequenceKeypoint.new(0.59908884764, 8.9877300262, 0.40000000596), NumberSequenceKeypoint.new(1, 6.9938650131, 0.40000000596)}))
+        setProperty(object, "Speed", NumberRange.new(0.0099999997765, 0.0099999997765))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 0))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://109310594794388")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.24533000588, 0.49374997616, 0), NumberSequenceKeypoint.new(0.50062263012, 0.3125, 0), NumberSequenceKeypoint.new(0.75591528416, 0.49374997616, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0.0099999997765)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 1)
+        object:SetAttribute("EmitDuration", 0.01)
+        object.Parent = created[8]
+        created[10] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Glow1"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 1)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.12941175699, 0.58039236069, 1)), ColorSequenceKeypoint.new(1, Color3.new(0.12941175699, 0.58039236069, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 1))
+        setProperty(object, "LightEmission", 0.30000001192)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.VelocityPerpendicular)
+        setProperty(object, "Rate", 5)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(0, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 20, 0), NumberSequenceKeypoint.new(1, 20, 0)}))
+        setProperty(object, "Speed", NumberRange.new(0.11652004719, 0.11652004719))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 0))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://8030760338")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.10087172687, 0.85000002384, 0), NumberSequenceKeypoint.new(0.19925279915, 0.75625002384, 0), NumberSequenceKeypoint.new(0.30012452602, 0.46249997616, 0), NumberSequenceKeypoint.new(0.40099623799, 0.099999964237, 0), NumberSequenceKeypoint.new(0.49688667059, 0, 0), NumberSequenceKeypoint.new(0.5990037322, 0.099999964237, 0), NumberSequenceKeypoint.new(0.70112079382, 0.46249997616, 0), NumberSequenceKeypoint.new(0.7995018363, 0.75, 0), NumberSequenceKeypoint.new(0.89912825823, 0.91250002384, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0.10000000149)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 1)
+        object:SetAttribute("EmitDelay", 0)
+        object:SetAttribute("EmitDuration", 0.1)
+        object.Parent = created[8]
+        created[11] = object
+    end
+    do
+        local object = Instance.new("Attachment")
+        object.Name = "White"
+        setProperty(object, "CFrame", CFrame.new(0, -0.5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Visible", false)
+        object.Parent = created[2]
+        created[12] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "EmberShower"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 3)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 5)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.40000000596, 1.3999999762))
+        setProperty(object, "LightEmission", 0)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 20)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(0, 0))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Surface)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0.20000000298, 0.20000000298), NumberSequenceKeypoint.new(0.5, 0.5, 0.30000001192), NumberSequenceKeypoint.new(1, 0.20000000298, 0.20000000298)}))
+        setProperty(object, "Speed", NumberRange.new(15, 15))
+        setProperty(object, "SpreadAngle", Vector2.new(180, 180))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://8030760338")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.70188003778, 0.35365855694, 0.097561001778), NumberSequenceKeypoint.new(0.90152192116, 0.94512194395, 0.054878056049), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 100)
+        object:SetAttribute("EmitDuration", 0.1)
+        object.Parent = created[12]
+        created[13] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Frost"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 2)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.13333332539, 0.83921545744, 1)), ColorSequenceKeypoint.new(1, Color3.new(0.13333332539, 0.83921545744, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 1))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 2)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(-360, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.40318909287, 5.7361960411, 0), NumberSequenceKeypoint.new(0.69020503759, 7.1779146194, 0), NumberSequenceKeypoint.new(1, 7.576687336, 0)}))
+        setProperty(object, "Speed", NumberRange.new(1, 1))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 180))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://124114872641641")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0.80000001192, 0), NumberSequenceKeypoint.new(0.69115811586, 0.79374998808, 0), NumberSequenceKeypoint.new(0.85056036711, 0.91874998808, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", -2)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 2)
+        object:SetAttribute("EmitDuration", 0.1)
+        object.Parent = created[12]
+        created[14] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "MistFrost"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 4)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.86666667461, 0.97254902124, 1)), ColorSequenceKeypoint.new(1, Color3.new(0.86666667461, 0.97254902124, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(1, 1))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 5)
+        setProperty(object, "RotSpeed", NumberRange.new(-25, 25))
+        setProperty(object, "Rotation", NumberRange.new(-180, 180))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 1.4700000286, 0.20000000298), NumberSequenceKeypoint.new(0.65717542171, 4.417178154, 0.20000000298), NumberSequenceKeypoint.new(1, 5, 0.20000000298)}))
+        setProperty(object, "Speed", NumberRange.new(0.10000000149, 0.10000000149))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 0))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://94112803205062")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0.89999997616, 0), NumberSequenceKeypoint.new(0.41843086481, 0.84375, 0), NumberSequenceKeypoint.new(0.64632624388, 0.86874997616, 0), NumberSequenceKeypoint.new(0.76463258266, 0.88749998808, 0), NumberSequenceKeypoint.new(0.88169360161, 0.96249997616, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", -3)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 2)
+        object:SetAttribute("EmitDuration", 0.1)
+        object.Parent = created[12]
+        created[15] = object
+    end
+    do
+        local object = Instance.new("Attachment")
+        object.Name = "Wind"
+        setProperty(object, "CFrame", CFrame.new(0, -0.5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+        setProperty(object, "Visible", false)
+        object.Parent = created[2]
+        created[16] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "BigSlash"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 2)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 0.5))
+        setProperty(object, "LightEmission", 0)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.VelocityPerpendicular)
+        setProperty(object, "Rate", 5)
+        setProperty(object, "RotSpeed", NumberRange.new(360, 720))
+        setProperty(object, "Rotation", NumberRange.new(0, 0))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 2.4846625328, 0.5), NumberSequenceKeypoint.new(1, 9.3251533508, 0.5)}))
+        setProperty(object, "Speed", NumberRange.new(0.10000000149, 0.10000000149))
+        setProperty(object, "SpreadAngle", Vector2.new(30, 30))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://94632945487917")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(0.29887920618, 0.60000002384, 0), NumberSequenceKeypoint.new(0.69987541437, 0.61874997616, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 5)
+        object:SetAttribute("EmitDuration", 1)
+        object.Parent = created[16]
+        created[17] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Wave"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 5)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 0.5))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 3)
+        setProperty(object, "RotSpeed", NumberRange.new(0, 0))
+        setProperty(object, "Rotation", NumberRange.new(0, 0))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 1, 0), NumberSequenceKeypoint.new(1, 4.7546010017, 0)}))
+        setProperty(object, "Speed", NumberRange.new(0.10000000149, 0.10000000149))
+        setProperty(object, "SpreadAngle", Vector2.new(0, 0))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://104007674902460")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.35616436601, 0, 0), NumberSequenceKeypoint.new(0.57534247637, 0.21875, 0), NumberSequenceKeypoint.new(0.80572849512, 0.89999997616, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", -4)
+        object.Enabled = false
+        object.Parent = created[16]
+        created[18] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Flocon"
+        setProperty(object, "Acceleration", Vector3.new(0, 1, 0))
+        setProperty(object, "Brightness", 3)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.61176472902, 0.82745099068, 0.91764706373)), ColorSequenceKeypoint.new(1, Color3.new(0.32156860828, 0.56078439951, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 1))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 20)
+        setProperty(object, "RotSpeed", NumberRange.new(-50, 50))
+        setProperty(object, "Rotation", NumberRange.new(-360, 360))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.28600001335, 0.30000001192, 0.17000000179), NumberSequenceKeypoint.new(0.55900001526, 0.44999998808, 0.20000000298), NumberSequenceKeypoint.new(0.68223237991, 0.39877295494, 0.14101310074), NumberSequenceKeypoint.new(0.7949886322, 0.27607381344, 0.095391213894), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Speed", NumberRange.new(5, 10))
+        setProperty(object, "SpreadAngle", Vector2.new(140, 140))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://93694233860367")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.70361143351, 0, 0), NumberSequenceKeypoint.new(1, 1, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 50)
+        object:SetAttribute("EmitDuration", 1)
+        object.Parent = created[2]
+        created[19] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Icicle"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 5)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.24313724041, 0.77254909277, 1)), ColorSequenceKeypoint.new(0.094991363585, Color3.new(0.13333332539, 0.65490198135, 1)), ColorSequenceKeypoint.new(1, Color3.new(0.72156864405, 0.90196073055, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 1))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 10)
+        setProperty(object, "RotSpeed", NumberRange.new(-180, 180))
+        setProperty(object, "Rotation", NumberRange.new(-90, 90))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.29954442382, 0.55214762688, 0.20000000298), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Speed", NumberRange.new(5, 10))
+        setProperty(object, "SpreadAngle", Vector2.new(140, 140))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://92307005963997")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.50809460878, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 10)
+        object:SetAttribute("EmitDuration", 1)
+        object.Parent = created[2]
+        created[20] = object
+    end
+    do
+        local object = Instance.new("ParticleEmitter")
+        object.Name = "Icicle"
+        setProperty(object, "Acceleration", Vector3.new(0, 0, 0))
+        setProperty(object, "Brightness", 5)
+        setProperty(object, "Color", ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0.24313724041, 0.77254909277, 1)), ColorSequenceKeypoint.new(0.094991363585, Color3.new(0.13333332539, 0.65490198135, 1)), ColorSequenceKeypoint.new(1, Color3.new(0.72156864405, 0.90196073055, 1))}))
+        setProperty(object, "Drag", 0)
+        setProperty(object, "EmissionDirection", Enum.NormalId.Top)
+        setProperty(object, "Enabled", false)
+        setProperty(object, "FlipbookFramerate", NumberRange.new(1, 1))
+        setProperty(object, "FlipbookLayout", Enum.ParticleFlipbookLayout.None)
+        setProperty(object, "FlipbookMode", Enum.ParticleFlipbookMode.Loop)
+        setProperty(object, "FlipbookStartRandom", false)
+        setProperty(object, "Lifetime", NumberRange.new(0.5, 1))
+        setProperty(object, "LightEmission", 0.20000000298)
+        setProperty(object, "LightInfluence", 0)
+        setProperty(object, "LockedToPart", false)
+        setProperty(object, "Orientation", Enum.ParticleOrientation.FacingCamera)
+        setProperty(object, "Rate", 10)
+        setProperty(object, "RotSpeed", NumberRange.new(-180, 180))
+        setProperty(object, "Rotation", NumberRange.new(-90, 90))
+        setProperty(object, "Shape", Enum.ParticleEmitterShape.Box)
+        setProperty(object, "ShapeInOut", Enum.ParticleEmitterShapeInOut.Outward)
+        setProperty(object, "ShapePartial", 1)
+        setProperty(object, "ShapeStyle", Enum.ParticleEmitterShapeStyle.Volume)
+        setProperty(object, "Size", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.29954442382, 0.55214762688, 0.20000000298), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Speed", NumberRange.new(5, 10))
+        setProperty(object, "SpreadAngle", Vector2.new(140, 140))
+        setProperty(object, "Squash", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "Texture", "rbxassetid://75634397644920")
+        setProperty(object, "TimeScale", 1)
+        setProperty(object, "Transparency", NumberSequence.new({NumberSequenceKeypoint.new(0, 0, 0), NumberSequenceKeypoint.new(0.50809460878, 0, 0), NumberSequenceKeypoint.new(1, 0, 0)}))
+        setProperty(object, "VelocityInheritance", 0)
+        setProperty(object, "WindAffectsDrag", false)
+        setProperty(object, "ZOffset", 0)
+        object.Enabled = false
+        object:SetAttribute("EmitCount", 10)
+        object:SetAttribute("EmitDuration", 1)
+        object.Parent = created[2]
+        created[21] = object
+    end
+    do
+        local object = Instance.new("Sound")
+        object.Name = "FreezeSound"
+        setProperty(object, "EmitterSize", 10)
+        setProperty(object, "LoopRegion", NumberRange.new(0, 60000))
+        setProperty(object, "Looped", false)
+        setProperty(object, "PlayOnRemove", false)
+        setProperty(object, "PlaybackRegion", NumberRange.new(0, 60000))
+        setProperty(object, "PlaybackRegionsEnabled", false)
+        setProperty(object, "PlaybackSpeed", 1)
+        setProperty(object, "RollOffMaxDistance", 10000)
+        setProperty(object, "RollOffMinDistance", 10)
+        setProperty(object, "RollOffMode", Enum.RollOffMode.Inverse)
+        setProperty(object, "SoundId", "rbxassetid://6092902279")
+        setProperty(object, "TimePosition", 0)
+        setProperty(object, "Volume", 0.98600000143)
+        object.Parent = created[2]
+        created[22] = object
+    end
+    do
+        local object = Instance.new("Sound")
+        object.Name = "FreezeSound"
+        setProperty(object, "EmitterSize", 10)
+        setProperty(object, "LoopRegion", NumberRange.new(0, 60000))
+        setProperty(object, "Looped", false)
+        setProperty(object, "PlayOnRemove", false)
+        setProperty(object, "PlaybackRegion", NumberRange.new(0, 60000))
+        setProperty(object, "PlaybackRegionsEnabled", false)
+        setProperty(object, "PlaybackSpeed", 1)
+        setProperty(object, "RollOffMaxDistance", 10000)
+        setProperty(object, "RollOffMinDistance", 10)
+        setProperty(object, "RollOffMode", Enum.RollOffMode.Inverse)
+        setProperty(object, "SoundId", "rbxassetid://10109483270")
+        setProperty(object, "TimePosition", 0)
+        setProperty(object, "Volume", 1)
+        object.Parent = created[2]
+        created[23] = object
+    end
+    return created[1]
+end
+
 local dmvsReplicatedVisualEffects = {
     SpookyNightEffect = true,
     BloodmoonEffect = true,
@@ -5150,10 +5837,6 @@ local dmvsReplicatedVisualEffects = {
     MoneyMaker = true,
     DJEffect = true,
     InterstellarEffect = true,
-    PhoenixEffect = true,
-    PurpleIce = true,
-    PurpleSmoke = true,
-    RedFire = true
 }
 
 local function dmvsCloneReplicatedEffectTemplate(name)
@@ -5178,7 +5861,8 @@ local dmvsVisualEffectBuilders = {
     SpiritOverload = dmvsCreateSpiritOverloadTemplate,
     BunnyBoys = dmvsCreateBunnyBoysTemplate,
     Freeze = dmvsCreateFreezeTemplate,
-    SakuraEffect = dmvsCreateSakuraEffectTemplate
+    SakuraEffect = dmvsCreateSakuraEffectTemplate,
+    Frostbite = dmvsCreateFrostbiteTemplate
 }
 for effectName in pairs(dmvsReplicatedVisualEffects) do
     local name = effectName
