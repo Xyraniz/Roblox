@@ -90,6 +90,12 @@ local function buildCapturedEffect(data, origin)
         end
         objects[i] = instance
         instance.Name = record[2]
+        if instance:IsA("BasePart") then
+            instance.Anchored = true
+            instance.CanCollide = false
+            instance.CanTouch = false
+            instance.CanQuery = false
+        end
     end
 
     for i, record in ipairs(records) do
