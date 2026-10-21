@@ -1,5 +1,3 @@
-local dmvsEffectsStorage = game:GetService("ReplicatedStorage")
-
 local function assignEffectProperty(instance, property, value)
     instance[property] = value
 end
@@ -5826,37 +5824,6 @@ local function dmvsCreateFrostbiteTemplate()
     return created[1]
 end
 
-local dmvsReplicatedVisualEffects = {
-    SpookyNightEffect = true,
-    BloodmoonEffect = true,
-    BlackholeEffect = true,
-    StardustCollapseEffect = true,
-    SandEffect = true,
-    SoulReaper = true,
-    SplashEffect = true,
-    MoneyMaker = true,
-    DJEffect = true,
-    InterstellarEffect = true,
-}
-
-local function dmvsCloneReplicatedEffectTemplate(name)
-    local skins = dmvsEffectsStorage:FindFirstChild("ReplicatedSkins")
-    if not skins then return nil end
-    local effects = skins:FindFirstChild("Effects")
-    local previews = skins:FindFirstChild("PreviewEffects")
-    local source = (effects and effects:FindFirstChild(name))
-        or (previews and previews:FindFirstChild(name))
-    if not source or not (source:IsA("BasePart") or source:IsA("Model") or source:IsA("Folder")) then
-        return nil
-    end
-    local cloned = source:Clone()
-    if not cloned or not cloned:FindFirstChildWhichIsA("ParticleEmitter", true) then
-        if cloned then cloned:Destroy() end
-        return nil
-    end
-    return cloned
-end
-
 local dmvsVisualEffectBuilders = {
     SpiritOverload = dmvsCreateSpiritOverloadTemplate,
     BunnyBoys = dmvsCreateBunnyBoysTemplate,
@@ -5864,13 +5831,6 @@ local dmvsVisualEffectBuilders = {
     SakuraEffect = dmvsCreateSakuraEffectTemplate,
     Frostbite = dmvsCreateFrostbiteTemplate
 }
-for effectName in pairs(dmvsReplicatedVisualEffects) do
-    local name = effectName
-    dmvsVisualEffectBuilders[name] = function()
-        return dmvsCloneReplicatedEffectTemplate(name)
-    end
-end
-
 
 local dmvsCapturedMeshCache = {}
 local dmvsCapturedHttp = game:GetService("HttpService")
