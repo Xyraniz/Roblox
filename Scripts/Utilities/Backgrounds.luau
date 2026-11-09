@@ -1,5 +1,7 @@
+
 local DEFAULT_BACKGROUND_ASSET = "84010790949905"
 local CLASSIC_BACKGROUND_ASSET = "76941174785484"
+
 return {
     Default = DEFAULT_BACKGROUND_ASSET,
     Options = {
@@ -15,5 +17,8 @@ return {
         {Label = "10", Value = "96251655542013", AssetId = "96251655542013"},
         {Label = "11", Value = "134424342210654", AssetId = "134424342210654"},
         {Label = "12", Value = "131685466987885", AssetId = "131685466987885"},
+        {Label = "13", Value = "96974617020645", AssetId = "96974617020645"},
+        {Label = "14", Value = "95614598947684", AssetId = "95614598947684"},
+        {Label = "15", Value = "138545507640408", AssetId = "138545507640408"},
     }
 }
