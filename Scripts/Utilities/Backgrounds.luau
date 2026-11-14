@@ -9,7 +9,7 @@ return {
         {Label = "Classic", LabelKey = "option.background_classic", Value = CLASSIC_BACKGROUND_ASSET, AssetId = CLASSIC_BACKGROUND_ASSET},
         {Label = "03", Value = "81717973234590", AssetId = "81717973234590"},
         {Label = "04", Value = "78344712293956", AssetId = "78344712293956"},
-        {Label = "05", Value = "121273753528078", AssetId = "121273753528078"},
+        {Label = "05", Value = "121273753528078", AssetId = "133864470809662"},
         {Label = "06", Value = "99986065565003", AssetId = "99986065565003"},
         {Label = "07", Value = "77292559253991", AssetId = "77292559253991"},
         {Label = "08", Value = "134276376004728", AssetId = "134276376004728"},
