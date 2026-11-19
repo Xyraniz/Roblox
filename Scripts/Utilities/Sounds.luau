@@ -1,6 +1,6 @@
 return {
     ["Default"] = "Among Us",
-    ["Options"] = {"Good", "Among Us", "Arsenal OG", "AAAAUGHHHH", "SCP-173", "Rezero", "BO2", "Undertale Omega Flowey's Laugh", "Wahh", "Overwatch", "Balloon Boy Laugh", "Wii", "Random 1", "Random 2", "Random 3"},
+    ["Options"] = {"Good", "Among Us", "Arsenal OG", "AAAAUGHHHH", "SCP-173", "Rezero", "BO2", "Undertale Omega Flowey's Laugh", "Wahh", "Overwatch", "Balloon Boy Laugh", "Wii", "Random 1", "Random 2", "Random 3", "Random 4"},
     ["Assets"] = {
         ["Good"] = "131977397046203",
         ["Among Us"] = "130456049552264",
@@ -16,6 +16,7 @@ return {
         ["Wii"] = "140267097817784",
         ["Random 1"] = "113993720568929",
         ["Random 2"] = "127842653776529",
-        ["Random 3"] = "138707899268973"
+        ["Random 3"] = "138707899268973",
+        ["Random 4"] = "139001550128331"
     }
 }
