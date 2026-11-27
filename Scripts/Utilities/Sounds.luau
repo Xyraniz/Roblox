@@ -1,6 +1,6 @@
 return {
     ["Default"] = "Among Us",
-    ["Options"] = {"Good", "Among Us", "Arsenal OG", "AAAAUGHHHH", "SCP-173", "Rezero", "BO2", "Undertale Omega Flowey's Laugh", "Wahh", "Overwatch", "Balloon Boy Laugh", "Wii", "Random 1", "Random 2", "Random 3", "Random 4", "Random 5", "Random 6", "Random 7", "Random 8", "Random 9", "Random 10", "Random 11", "Random 12", "Random 13", "Random 14", "Random 15", "Random 16", "Random 17", "Random 18"},
+    ["Options"] = {"Good", "Among Us", "Arsenal OG", "AAAAUGHHHH", "SCP-173", "Rezero", "BO2", "Undertale Omega Flowey's Laugh", "Wahh", "Overwatch", "Balloon Boy Laugh", "Wii", "Random 1", "Random 2", "Random 3", "Random 4", "Random 5", "Random 6", "Random 7", "Random 8", "Random 9", "Random 10", "Random 11", "Random 12", "Random 13", "Random 14", "Random 15", "Random 16", "Random 17", "Random 18", "Random 19", "Random 20", "Random 21", "Random 22", "Random 23", "Random 24"},
     ["Assets"] = {
         ["Good"] = "131977397046203",
         ["Among Us"] = "130456049552264",
@@ -31,6 +31,12 @@ return {
         ["Random 15"] = "108077049514411",
         ["Random 16"] = "9103759121",
         ["Random 17"] = "9120146349",
-        ["Random 18"] = "144884872"
+        ["Random 18"] = "144884872",
+        ["Random 19"] = "109397400639910",
+        ["Random 20"] = "120089981011454",
+        ["Random 21"] = "18315629371",
+        ["Random 22"] = "120500575601792",
+        ["Random 23"] = "130644611233997",
+        ["Random 24"] = "9118598279"
     }
 }
